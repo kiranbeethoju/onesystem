@@ -31,6 +31,37 @@ model = OneSystem.load(device="cuda")
 
 ---
 
+## Input limits and context length
+
+These are the **v0.2.0** numbers baked into `config.json`. Longer inputs are **truncated** (Hugging Face default: keep the start of the string, drop the tail).
+
+| Limit | Value | What it means in practice |
+|---|---|---|
+| **Text context (trained / inference)** | **320 tokens** | Includes the task prefix (`"{task}: {text}"`). About **220–300 English words**, or roughly **1,400–2,000 characters**, for typical support / note prose. Dense code or mixed punctuation uses more tokens per word. |
+| **Label context** | **32 tokens** | Includes `"{task}: {label}"` or `"{task}: {label}. {description}"`. Keep label names short; put detail in the description, but stay under ~20–25 words. |
+| **Encoder hard ceiling** | **512 tokens** | BERT / BGE position-embedding max. OneSystem does **not** use the full 512 for text today — training and `classify` truncate at **320**. Raising that needs a retrain (`--max-text-len`, max 512). |
+| **Minimum labels per task** | **2** | Softmax / choice needs at least two candidates. |
+| **Tasks per call** | No hard cap | Each task encodes the text once (with that task’s prefix). Ten heads ≈ ten text forwards + cached label embeds. |
+| **Labels per task** | Soft limit | No code max; cost is one encode per unique `(task, label[, description])`, then cache. Prefer **2–16** candidates (matches the training distribution). Dozens of vague labels degrade accuracy. |
+| **Batch** | `classify_batch(texts, …)` | Each text is still capped at 320 tokens. Memory grows with batch × heads. |
+| **Language** | **English** | Training data and BGE-base-en. Other languages are unsupported in v0.2.0. |
+| **Document type** | Short message / note | Built for tickets, chat turns, intake blurbs — not full PDFs, EMR charts, or long threads. Summarize or chunk first; only the first ~320 tokens of each chunk are scored. |
+
+**Practical guidance**
+
+- Paste the **decision-relevant** paragraph, not the whole email thread.  
+- If the important sentence is at the end of a long paste, it may be **cut off** — put it first or shorten.  
+- Described labels help (`{"yes": "contains PHI"}`) but count toward the **32-token** label budget.  
+- For latency: fixed schema → label vectors cached; expect roughly **one text encode per task** after the first call.
+
+| Runtime ballpark (v0.2.0, one short text, few heads) | |
+|---|---|
+| Apple MPS / consumer GPU | ~10–40 ms per task after warmup |
+| CPU (modern laptop) | ~50–150 ms per task |
+| Model download | ~420 MB once into `~/.cache/onesystem` |
+
+---
+
 ## Decision types (what the model outputs)
 
 OneSystem is **not** a chat model. Every call is a typed classification over a candidate set you define.
@@ -505,6 +536,7 @@ Apache 2.0 — [LICENSE](LICENSE), [NOTICE](NOTICE). Encoder init (`BAAI/bge-bas
 
 ## Limitations
 
+- **Context:** text truncated at **320 tokens** (~220–300 words / ~1.4–2k chars); labels at **32 tokens**. Encoder hard max is 512, but this release does not use it for text. Not a long-document model.
 - Small specialist (~1.7k public development rows). Not a substitute for a large domain-tuned classifier or a clinical/financial decision system of record.
 - Multi-label exact-set match remains the weakest metric.
 - Calibrate and threshold on **your** labels before routing production traffic.

@@ -27,19 +27,47 @@
   <main>
     <section class="strip">
       <div>
+        <span class="k">Text context</span>
+        <strong>320 tokens</strong>
+        <em>~220–300 English words · ~1.4–2k chars</em>
+      </div>
+      <div>
+        <span class="k">Label context</span>
+        <strong>32 tokens</strong>
+        <em>name + optional description</em>
+      </div>
+      <div>
+        <span class="k">Encoder ceiling</span>
+        <strong>512 tokens</strong>
+        <em>BERT/BGE max · train uses 320</em>
+      </div>
+      <div>
         <span class="k">v0.2.0 holdout</span>
         <strong>0.453 → 0.552</strong>
-        <em>exact match after fine-tune</em>
+        <em>exact match · ECE 0.074</em>
       </div>
-      <div>
-        <span class="k">ECE</span>
-        <strong>0.074</strong>
-        <em>calibrated temperature 2.1</em>
-      </div>
-      <div>
-        <span class="k">Weights</span>
-        <strong>~420 MB</strong>
-        <em>own model.safetensors</em>
+    </section>
+
+    <section id="limits">
+      <h2>Input limits</h2>
+      <p class="section-lede">Hard numbers from OneSystem <strong>v0.2.0</strong> <code>config.json</code>. Longer strings are truncated (start kept, tail dropped).</p>
+      <div class="type-grid">
+        <article>
+          <h3>320 tokens of text</h3>
+          <p>Includes <code>"{task}: {text}"</code>. Realistic English: about <strong>250 words</strong> or <strong>1,500–2,000 characters</strong> of ticket / note prose. Not for full PDFs or long threads — summarize or put the decision-relevant lines first.</p>
+        </article>
+        <article>
+          <h3>32 tokens per label</h3>
+          <p>Includes task prefix and description. Prefer short names; keep descriptions under ~20–25 words or they truncate.</p>
+        </article>
+        <article>
+          <h3>2–16 labels per task</h3>
+          <p>Minimum two candidates. Training data used small sets (often 2–16). Large vague label dumps hurt accuracy; labels are cached after the first encode.</p>
+        </article>
+        <article>
+          <h3>English, short documents</h3>
+          <p>Trained on English development data. Latency ballpark after warmup: ~10–40&nbsp;ms/task on GPU/MPS, ~50–150&nbsp;ms/task on CPU. Download ~420&nbsp;MB once.</p>
+        </article>
       </div>
     </section>
 

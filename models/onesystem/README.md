@@ -7,6 +7,7 @@ Standalone System 1 decision model. The weights in this release are OneSystem's 
 - Encoder initialisation: `BAAI/bge-base-en-v1.5` (MIT), before OneSystem training
 - Data: `fastino/fast-decisions` development split, per domain 70 percent train (1,190 rows), 10 percent calibration (170), 20 percent eval (340)
 - Recipe: 6 epochs, batch 16, AdamW (encoder 3e-5, head 1e-4), linear warmup and decay, eager attention
+- Context: **320 tokens** text (incl. task prefix; ~220–300 English words), **32 tokens** per label; encoder hard max 512
 - Calibration: temperature 2.1 fit on the calibration slice
 - Local holdout: zero-shot 0.453 exact match before training, **0.552 exact match (320 of 580 heads) after training**, expected calibration error 0.074. This is not Fastino's unpublished test benchmark.
 - License: Apache 2.0

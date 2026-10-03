@@ -58,6 +58,8 @@ label → encoder → pool → proj → normalize ─┘
 
 The encoder is a 110M BERT-style network initialised from `BAAI/bge-base-en-v1.5`, then fine-tuned. A shared projection starts as the identity so zero-shot already uses the encoder’s geometry. Training data is the public `fastino/fast-decisions` development split (train / calib / eval per domain). On our local holdout: **0.453 → 0.552** exact match after fine-tuning, ECE **0.074**, temperature **2.1**. That holdout is not Fastino’s unpublished test benchmark — say so when you cite the number.
 
+**Context limits (v0.2.0):** text is truncated at **320 tokens** (~220–300 English words / ~1.4–2k characters, including the task prefix). Labels (name + optional description) cap at **32 tokens**. The underlying encoder can go to 512, but this release trains and infers at 320. Built for short tickets and notes — not full PDFs.
+
 ---
 
 ## Decision types (the data model)
