@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OneSystem — System 1 decision model</title>
+  <meta name="description" content="OneSystem is a standalone System 1 decision model. Typed labels, calibrated confidence, one forward pass. Cookbook with real outputs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <header class="hero">
+    <p class="brand">OneSystem</p>
+    <h1>Typed decisions in one forward pass</h1>
+    <p class="lede">Pass a document and the labels that are legal. Get a choice, multi-label tags, or an ordinal score — with calibrated confidence. No chat. No GLiNER at runtime.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/kiranbeethoju/onesystem">GitHub</a>
+      <a class="btn" href="https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.0">v0.2.0 weights</a>
+      <a class="btn" href="#cookbook">Cookbook</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="strip">
+      <div>
+        <span class="k">v0.2.0 holdout</span>
+        <strong>0.453 → 0.552</strong>
+        <em>exact match after fine-tune</em>
+      </div>
+      <div>
+        <span class="k">ECE</span>
+        <strong>0.074</strong>
+        <em>calibrated temperature 2.1</em>
+      </div>
+      <div>
+        <span class="k">Weights</span>
+        <strong>~420 MB</strong>
+        <em>own model.safetensors</em>
+      </div>
+    </section>
+
+    <section id="types">
+      <h2>Decision types</h2>
+      <p class="section-lede">Every call is classification over a candidate set you define.</p>
+      <div class="type-grid">
+        <article>
+          <h3>Single-label</h3>
+          <p><code>"intent": ["refund", "other"]</code></p>
+          <p>Returns <code>label</code>, <code>confidence</code>, <code>probabilities</code>.</p>
+        </article>
+        <article>
+          <h3>Multi-label</h3>
+          <p><code>multi_label: True</code> + threshold</p>
+          <p>Returns a list of labels above the threshold.</p>
+        </article>
+        <article>
+          <h3>Ordinal</h3>
+          <p>Labels like <code>0..3</code></p>
+          <p>Adds expected <code>score</code> for severity / urgency scales.</p>
+        </article>
+        <article>
+          <h3>Abstain</h3>
+          <p><code>min_confidence=0.6</code></p>
+          <p>Weak heads return <code>label: null</code> and <code>abstain: true</code>.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="install">
+      <h2>Install</h2>
+      <pre class="code"><code>git clone https://github.com/kiranbeethoju/onesystem.git
+cd onesystem
+pip install -e .
+
+from onesystem.model import OneSystem
+model = OneSystem.load()  # downloads release weights if needed</code></pre>
+    </section>
+
+    <section id="cookbook">
+      <h2>Cookbook — code and real outputs</h2>
+      <p class="section-lede">Outputs below were produced with OneSystem <strong>v0.2.0</strong> on CPU. Schemas are inference-time recipes; clinical examples are not medical advice or a device.</p>
+
+      <!-- HANDOFF -->
+      <article class="recipe" id="handoff">
+        <header>
+          <p class="domain">Support</p>
+          <h3>Bot handoff</h3>
+        </header>
+        <pre class="code"><code>model.classify(
+    "Stop the bot and get me a person.",
+    {
+        "handoff": ["yes", "no"],
+        "sentiment": ["negative", "neutral", "positive"],
+        "urgency": ["0", "1", "2", "3"],
+    },
+    min_confidence=0.6,
+)</code></pre>
+        <pre class="out"><code>{
+  "handoff": {
+    "label": "yes",
+    "confidence": 0.9823,
+    "probabilities": {"yes": 0.9823, "no": 0.0177}
+  },
+  "sentiment": {
+    "label": null,
+    "confidence": 0.5687,
+    "probabilities": {
+      "negative": 0.3651,
+      "neutral": 0.0662,
+      "positive": 0.5687
+    },
+    "abstain": true
+  },
+  "urgency": {
+    "label": null,
+    "confidence": 0.3615,
+    "score": 1.5061,
+    "abstain": true,
+    "probabilities": {"0": 0.1819, "1": 0.3615, "2": 0.2251, "3": 0.2314}
+  }
+}</code></pre>
+        <p class="note">Handoff is decisive. Sentiment and urgency abstain under the confidence floor — route those to a human or a second model.</p>
+      </article>
+
+      <!-- ECOMMERCE -->
+      <article class="recipe" id="ecommerce">
+        <header>
+          <p class="domain">E-commerce</p>
+          <h3>Damaged order → policy path</h3>
+        </header>
+        <pre class="code"><code>model.classify(
+    "Order #18422 arrived with a cracked phone case. I need a "
+    "replacement before Friday or a refund to the original card. "
+    "Tracking said delivered yesterday.",
+    {
+        "intent": [
+            "refund_request", "replacement", "order_status",
+            "cancel_order", "address_change", "other",
+        ],
+        "policy_path": {
+            "labels": {
+                "damaged_in_transit": "item arrived broken; open replacement or refund",
+                "change_of_mind": "customer no longer wants the item",
+                "late_delivery": "SLA miss; goodwill or carrier claim",
+                "wrong_item": "fulfilled SKU does not match order",
+            }
+        },
+        "urgency": ["0", "1", "2", "3"],
+        "areas": {
+            "labels": ["shipping", "product_quality", "payments", "account"],
+            "multi_label": True,
+            "threshold": 0.45,
+        },
+    },
+    min_confidence=0.6,
+)</code></pre>
+        <pre class="out"><code>{
+  "intent": {
+    "label": "replacement",
+    "confidence": 0.6003,
+    "probabilities": {
+      "refund_request": 0.2438,
+      "replacement": 0.6003,
+      "order_status": 0.0396,
+      "cancel_order": 0.0671,
+      "address_change": 0.0373,
+      "other": 0.012
+    }
+  },
+  "policy_path": {
+    "label": "damaged_in_transit",
+    "confidence": 0.9282,
+    "probabilities": {
+      "damaged_in_transit": 0.9282,
+      "change_of_mind": 0.0214,
+      "late_delivery": 0.0365,
+      "wrong_item": 0.014
+    }
+  },
+  "urgency": {
+    "label": null,
+    "confidence": 0.3945,
+    "score": 1.5084,
+    "abstain": true
+  },
+  "areas": {
+    "labels": ["shipping", "product_quality", "payments", "account"],
+    "threshold": 0.45,
+    "probabilities": {
+      "shipping": 0.616,
+      "product_quality": 0.6108,
+      "payments": 0.7614,
+      "account": 0.6941
+    }
+  }
+}</code></pre>
+        <p class="note">Described labels help <code>policy_path</code> land on <strong>damaged_in_transit</strong> (0.93). Intent prefers replacement over refund. Urgency abstains.</p>
+      </article>
+
+      <!-- FINTECH -->
+      <article class="recipe" id="fintech">
+        <header>
+          <p class="domain">Financial</p>
+          <h3>Duplicate charge + card freeze</h3>
+        </header>
+        <pre class="code"><code>model.classify(
+    "I see two $499 charges from ACME MARKET on my debit card "
+    "this morning. I only bought once. Please reverse the "
+    "duplicate and freeze the card if needed.",
+    {
+        "intent": [
+            "dispute_charge", "card_freeze", "balance_inquiry",
+            "transfer_help", "other",
+        ],
+        "channel_urgency": ["0", "1", "2", "3"],
+        "fraud_signal": {
+            "labels": {
+                "high": "likely unauthorized or duplicate fraud pattern",
+                "medium": "needs agent review",
+                "low": "ordinary customer request",
+            }
+        },
+        "products": {
+            "labels": ["debit_card", "credit_card", "checking", "wire", "mobile_app"],
+            "multi_label": True,
+            "threshold": 0.4,
+        },
+    },
+    min_confidence=0.6,
+)</code></pre>
+        <pre class="out"><code>{
+  "intent": {
+    "label": "card_freeze",
+    "confidence": 0.7224,
+    "probabilities": {
+      "dispute_charge": 0.113,
+      "card_freeze": 0.7224,
+      "balance_inquiry": 0.0714,
+      "transfer_help": 0.0493,
+      "other": 0.0438
+    }
+  },
+  "channel_urgency": {
+    "label": null,
+    "confidence": 0.3959,
+    "score": 1.4304,
+    "abstain": true
+  },
+  "fraud_signal": {
+    "label": null,
+    "confidence": 0.5,
+    "abstain": true,
+    "probabilities": {"high": 0.3925, "medium": 0.1075, "low": 0.5}
+  },
+  "products": {
+    "labels": ["debit_card", "credit_card", "checking", "wire", "mobile_app"],
+    "threshold": 0.4,
+    "probabilities": {
+      "debit_card": 0.9704,
+      "credit_card": 0.9111,
+      "checking": 0.512,
+      "wire": 0.74,
+      "mobile_app": 0.6498
+    }
+  }
+}</code></pre>
+        <p class="note">Intent leans <strong>card_freeze</strong> from “freeze the card”. <code>fraud_signal</code> abstains — a good place to escalate rather than auto-close.</p>
+      </article>
+
+      <!-- EDTECH -->
+      <article class="recipe" id="edtech">
+        <header>
+          <p class="domain">EdTech</p>
+          <h3>Gradebook issue before midterm</h3>
+        </header>
+        <pre class="code"><code>model.classify(
+    "I submitted my calculus homework twice and the gradebook "
+    "still shows zero. Midterm is tomorrow — can a human check this?",
+    {
+        "intent": [
+            "grade_issue", "content_question", "tech_support",
+            "deadline_extension", "other",
+        ],
+        "subject": [
+            "math", "science", "english", "history",
+            "computer_science", "other",
+        ],
+        "needs_human": ["yes", "no"],
+        "urgency": ["0", "1", "2", "3"],
+        "topics": {
+            "labels": ["grading", "lms_bug", "exam_prep", "account_access"],
+            "multi_label": True,
+        },
+    },
+    min_confidence=0.55,
+)</code></pre>
+        <pre class="out"><code>{
+  "intent": {
+    "label": "grade_issue",
+    "confidence": 0.7595,
+    "probabilities": {
+      "grade_issue": 0.7595,
+      "content_question": 0.0688,
+      "tech_support": 0.0952,
+      "deadline_extension": 0.0423,
+      "other": 0.0342
+    }
+  },
+  "subject": {
+    "label": "math",
+    "confidence": 0.8012,
+    "probabilities": {
+      "math": 0.8012,
+      "science": 0.0405,
+      "english": 0.032,
+      "history": 0.0071,
+      "computer_science": 0.1069,
+      "other": 0.0123
+    }
+  },
+  "needs_human": {
+    "label": "no",
+    "confidence": 0.7208,
+    "probabilities": {"yes": 0.2792, "no": 0.7208}
+  },
+  "urgency": {
+    "label": null,
+    "confidence": 0.4197,
+    "score": 1.117,
+    "abstain": true
+  },
+  "topics": {
+    "labels": ["grading", "lms_bug", "exam_prep", "account_access"],
+    "threshold": 0.5,
+    "probabilities": {
+      "grading": 0.9629,
+      "lms_bug": 0.8589,
+      "exam_prep": 0.845,
+      "account_access": 0.6384
+    }
+  }
+}</code></pre>
+        <p class="note"><strong>grade_issue</strong> + <strong>math</strong> are clear. Binary <code>needs_human</code> can be brittle without described labels — prefer descriptions or a higher-level escalate rule using urgency abstain.</p>
+      </article>
+
+      <!-- CLINICAL -->
+      <article class="recipe" id="clinical">
+        <header>
+          <p class="domain">Clinical (schema demo)</p>
+          <h3>Chest-pain intake note</h3>
+        </header>
+        <p class="warn">Not a medical device. Do not use as the sole basis for diagnosis or treatment.</p>
+        <pre class="code"><code>model.classify(
+    "52M with sudden crushing chest pain radiating to left arm "
+    "for 40 minutes, diaphoresis, history of hypertension. "
+    "BP 168/102, HR 110. No fever.",
+    {
+        "acuity": ["0", "1", "2", "3", "4"],
+        "disposition": {
+            "labels": {
+                "ed_now": "send to emergency department immediately",
+                "urgent_clinic": "same-day clinic or urgent care",
+                "routine": "non-urgent outpatient follow-up",
+                "self_care": "home care with return precautions",
+            }
+        },
+        "specialty": [
+            "cardiology", "pulmonology", "gastroenterology",
+            "neurology", "primary_care", "other",
+        ],
+        "red_flags": {
+            "labels": [
+                "chest_pain", "shortness_of_breath", "neuro_deficit",
+                "severe_bleeding", "altered_mental_status",
+            ],
+            "multi_label": True,
+            "threshold": 0.45,
+        },
+    },
+    min_confidence=0.55,
+)</code></pre>
+        <pre class="out"><code>{
+  "acuity": {
+    "label": null,
+    "confidence": 0.2632,
+    "score": 1.7674,
+    "abstain": true,
+    "probabilities": {
+      "0": 0.224, "1": 0.2632, "2": 0.2113,
+      "3": 0.1242, "4": 0.1772
+    }
+  },
+  "disposition": {
+    "label": "ed_now",
+    "confidence": 0.6012,
+    "probabilities": {
+      "ed_now": 0.6012,
+      "urgent_clinic": 0.2443,
+      "routine": 0.0865,
+      "self_care": 0.0681
+    }
+  },
+  "specialty": {
+    "label": "cardiology",
+    "confidence": 0.608,
+    "probabilities": {
+      "cardiology": 0.608,
+      "pulmonology": 0.1167,
+      "gastroenterology": 0.0684,
+      "neurology": 0.0772,
+      "primary_care": 0.0707,
+      "other": 0.0589
+    }
+  },
+  "red_flags": {
+    "labels": [
+      "chest_pain", "shortness_of_breath", "neuro_deficit",
+      "severe_bleeding", "altered_mental_status"
+    ],
+    "threshold": 0.45,
+    "probabilities": {
+      "chest_pain": 0.9969,
+      "shortness_of_breath": 0.8874,
+      "neuro_deficit": 0.6478,
+      "severe_bleeding": 0.9086,
+      "altered_mental_status": 0.732
+    }
+  }
+}</code></pre>
+        <p class="note">Described <strong>ed_now</strong> and specialty <strong>cardiology</strong> fire with moderate confidence. Acuity abstains — the right System‑1 behaviour before a clinician.</p>
+      </article>
+
+      <!-- GATE -->
+      <article class="recipe" id="gate">
+        <header>
+          <p class="domain">Architecture pattern</p>
+          <h3>System 1 gate in front of an LLM</h3>
+        </header>
+        <pre class="code"><code>d = model.classify(
+    "Hi, we were billed twice for March. Please refund the duplicate today.",
+    {
+        "intent": ["refund_request", "order_status", "cancel_subscription", "other"],
+        "handoff": ["yes", "no"],
+    },
+    min_confidence=0.65,
+)
+
+if d["handoff"]["label"] == "yes" or d["intent"].get("abstain"):
+    action = "queue:human"
+elif d["intent"]["label"] == "order_status":
+    action = "macro:order_status"
+else:
+    action = "llm:compose_reply"</code></pre>
+        <pre class="out"><code>{
+  "intent": {
+    "label": "refund_request",
+    "confidence": 0.9625,
+    "probabilities": {
+      "refund_request": 0.9625,
+      "order_status": 0.0043,
+      "cancel_subscription": 0.0247,
+      "other": 0.0084
+    }
+  },
+  "handoff": {
+    "label": "yes",
+    "confidence": 0.7487,
+    "probabilities": {"yes": 0.7487, "no": 0.2513}
+  }
+}
+# → action = "queue:human"</code></pre>
+      </article>
+    </section>
+
+    <section id="built">
+      <h2>How it is built</h2>
+      <pre class="arch"><code>text  --"{task}: {text}"-->  encoder → mean → proj → normalize ─┐
+                                                                cosine × scale / T → softmax | sigmoid
+label --"{task}: {label}"--> encoder → mean → proj → normalize ─┘</code></pre>
+      <ul class="bullets">
+        <li>110M encoder initialised from <code>BAAI/bge-base-en-v1.5</code>, then fine-tuned; weights saved inside OneSystem.</li>
+        <li>Shared identity-initialised projection so zero-shot already uses encoder geometry.</li>
+        <li>Data: public <code>fastino/fast-decisions</code> development split — 70% train / 10% calib / 20% eval per domain.</li>
+        <li>No <code>gliner2</code>, no PEFT adapter at inference.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>OneSystem</strong> · Apache 2.0 · <a href="https://github.com/kiranbeethoju/onesystem">kiranbeethoju/onesystem</a></p>
+    <p class="small">Holdout scores are on a cut of the public development split, not Fastino’s unpublished test benchmark.</p>
+  </footer>
+
+  <script>
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("in"); });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".recipe, .type-grid article, .strip, .arch").forEach((el) => observer.observe(el));
+  </script>
+</body>
+</html>

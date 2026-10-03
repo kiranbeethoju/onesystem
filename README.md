@@ -2,7 +2,7 @@
 
 OneSystem is a standalone **System 1 decision model**. You pass a document and the labels that are legal for a decision; it returns the chosen label, a calibrated confidence, and the full probability table in **one forward pass**. It does not generate text. Loading never pulls GLiNER or any other vendor decision checkpoint — the weights you download are OneSystem's own.
 
-**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.2.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.0)
+**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.2.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.0) · **Cookbook site:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/)
 
 ---
 
