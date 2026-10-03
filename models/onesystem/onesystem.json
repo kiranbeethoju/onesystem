@@ -1,6 +1,6 @@
 {
   "name": "OneSystem",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "model_type": "onesystem",
   "encoder_init": "BAAI/bge-base-en-v1.5",
   "dataset": "fastino/fast-decisions",
@@ -9,14 +9,14 @@
   "training": {
     "encoder": "BAAI/bge-base-en-v1.5",
     "epochs": 6,
-    "batch_size": 16,
+    "batch_size": 12,
     "encoder_lr": 3e-05,
     "head_lr": 0.0001,
     "weight_decay": 0.01,
     "warmup_ratio": 0.06,
     "max_grad_norm": 1.0,
-    "max_text_len": 320,
-    "max_label_len": 32,
+    "max_text_len": 512,
+    "max_label_len": 64,
     "seed": 42
   },
   "domains": 17,
@@ -28,43 +28,43 @@
     "ece": 0.1102
   },
   "train_run": {
-    "steps": 762,
+    "steps": 1020,
     "history": [
       {
         "epoch": 1,
-        "loss": 1.3746
+        "loss": 1.3536
       },
       {
         "epoch": 2,
-        "loss": 0.7383
+        "loss": 0.7379
       },
       {
         "epoch": 3,
-        "loss": 0.4153
+        "loss": 0.3757
       },
       {
         "epoch": 4,
-        "loss": 0.2312
+        "loss": 0.2068
       },
       {
         "epoch": 5,
-        "loss": 0.1279
+        "loss": 0.1127
       },
       {
         "epoch": 6,
-        "loss": 0.0862
+        "loss": 0.0659
       }
     ],
-    "seconds": 972.4
+    "seconds": 1046.6
   },
   "calibration": {
     "temperature": 2.1,
-    "calib_nll": 1.0598
+    "calib_nll": 1.0401
   },
   "eval": {
-    "exact_match": 0.5517,
-    "ece": 0.0742,
+    "exact_match": 0.5431,
+    "ece": 0.0868,
     "heads": 580,
-    "correct": 320
+    "correct": 315
   }
 }

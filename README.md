@@ -4,7 +4,7 @@
 
 Pass a short document and the labels that are legal for a decision. OneSystem returns a typed answer, a probability table, and calibrated confidence in **one forward pass**. It does **not** generate text. It does **not** replace reasoning models (JEV, Laya, GPT, …) — it sits **in front of them** so simple requests never pay for an LLM call.
 
-**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.2.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.0) · **Cookbook + live outputs:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/)
+**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.2.1](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.1) · **Cookbook + live outputs:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/)
 
 ---
 
@@ -106,7 +106,7 @@ else:
     route = f"macro:{d['intent']['label']}"
 ```
 
-Real output on this text (v0.2.0): `intent=refund_request` (0.96), `handoff=yes` (0.75) → escalate. More code + JSON: [cookbook site](https://kiranbeethoju.github.io/onesystem/).
+More code + JSON: [cookbook site](https://kiranbeethoju.github.io/onesystem/).
 
 Colab: `pip install -e .` then `OneSystem.load(device="cuda")`. Set `ONESYSTEM_HOME` to move the cache.
 
@@ -114,17 +114,18 @@ Colab: `pip install -e .` then `OneSystem.load(device="cuda")`. Set `ONESYSTEM_H
 
 ## 5. Performance, context, calibration
 
-| Metric | v0.2.0 |
+| Metric | v0.2.1 |
 |---|---|
-| Local holdout exact match | Zero-shot **0.453** → fine-tuned **0.552** (320/580 heads) |
-| Expected calibration error | **0.074** (temperature **2.1**) |
-| Text context | **320 tokens** (~220–300 English words / ~1.4–2k chars), incl. task prefix |
-| Label context | **32 tokens** (name + optional description) |
-| Encoder ceiling | **512** (BERT/BGE); this release trains/infers at 320 |
-| Latency (ballpark) | ~10–40 ms/task GPU/MPS · ~50–150 ms/task CPU after warmup |
+| Local holdout exact match | Zero-shot **0.453** → fine-tuned **0.543** (315/580 heads) |
+| Expected calibration error | **0.087** (temperature **2.1**) |
+| Text context | **512 tokens** (~350–450 English words / ~2.5–3.5k chars), incl. task prefix |
+| Label context | **64 tokens** (name + optional description) |
+| Encoder ceiling | **512** — BGE-base hard max; v0.2.1 uses the full window |
+| Beyond 512? | Needs a longer-context `--encoder` and a retrain |
+| Latency (ballpark) | Tens of ms/task on GPU/MPS after warmup |
 | Weights | ~420 MB `model.safetensors` |
 
-Holdout is a cut of the public development split — **not** Fastino’s unpublished test benchmark. Longer text is truncated (start kept). English, short notes/tickets — not full PDFs. Prefer **2–16** labels per task.
+Holdout is a cut of the public development split — **not** Fastino’s unpublished test benchmark. Longer text is truncated (start kept). English. Prefer **2–16** labels per task.
 
 **Output shapes:** single-label `{label, confidence, probabilities}` · multi-label `{labels, probabilities, threshold}` · ordinal adds `score` · weak heads can `{abstain: true, label: null}`.
 
@@ -140,7 +141,7 @@ label --"{task}: {label}"--> encoder → mean → proj → normalize ─┘
 
 - Encoder initialised from [`BAAI/bge-base-en-v1.5`](https://huggingface.co/BAAI/bge-base-en-v1.5) (MIT), then fine-tuned; saved inside OneSystem (no GLiNER at runtime).
 - Data: public [`fastino/fast-decisions`](https://huggingface.co/datasets/fastino/fast-decisions) development split — 1,700 rows, 17 domains; per domain **70% train / 10% calib / 20% eval**.
-- Recipe: 6 epochs, batch 16, AdamW (encoder 3e-5, head 1e-4), eager attention; temperature fit on calib only.
+- Recipe: 6 epochs, AdamW (encoder 3e-5, head 1e-4), eager attention; **max_text_len=512**, **max_label_len=64**; temperature fit on calib only.
 - Pure PyTorch + Transformers — `python -m onesystem.train` / `onesystem.evaluate`.
 
 ```bash

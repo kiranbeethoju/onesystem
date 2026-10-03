@@ -8,7 +8,7 @@ from onesystem.model import normalise_tasks
 
 def test_project_identity():
     assert MODEL_NAME == "OneSystem"
-    assert __version__ == "0.2.0"
+    assert __version__ == "0.2.1"
     assert DATASET_ID == "fastino/fast-decisions"
     assert RELEASE_REPO == "kiranbeethoju/onesystem"
 

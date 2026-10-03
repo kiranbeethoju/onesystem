@@ -36,13 +36,13 @@ WEIGHTS_FILE = "model.safetensors"
 @dataclass
 class OneSystemConfig:
     name: str = "OneSystem"
-    version: str = "0.2.0"
+    version: str = "0.2.1"
     model_type: str = "onesystem"
     encoder_name: str = ""
     encoder_config: Dict = field(default_factory=dict)
     hidden_size: int = 768
-    max_text_len: int = 320
-    max_label_len: int = 32
+    max_text_len: int = 512
+    max_label_len: int = 64
     text_template: str = "{task}: {text}"
     label_template: str = "{task}: {label}"
     described_label_template: str = "{task}: {label}. {description}"
