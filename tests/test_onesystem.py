@@ -1,53 +1,60 @@
-from onesystem import BASE_CHECKPOINT, DATASET_ID, MODEL_NAME, __version__
-from onesystem.evaluate import gold_labels, predicted_labels, tasks_from_record
-from onesystem.train import build_manifest, build_training_config
+import pytest
+
+from onesystem import DATASET_ID, MODEL_NAME, RELEASE_REPO, RELEASE_TAG, __version__
+from onesystem.evaluate import expected_calibration_error, gold_labels, predicted_labels, tasks_from_record
+from onesystem.hub import REQUIRED_FILES, release_url
+from onesystem.model import normalise_tasks
 
 
-def test_project_name_is_onesystem():
+def test_project_identity():
     assert MODEL_NAME == "OneSystem"
-    assert __version__ == "0.1.0"
-    assert BASE_CHECKPOINT == "fastino/GLiNER2.5-Decide"
+    assert __version__ == "0.2.0"
     assert DATASET_ID == "fastino/fast-decisions"
+    assert RELEASE_REPO == "kiranbeethoju/onesystem"
 
 
-def test_training_config_is_a_small_lora_run():
-    config = build_training_config()
-    assert config.experiment_name == "OneSystem"
-    assert config.use_lora is True
-    assert config.save_adapter_only is True
-    assert config.fp16 is False
-    assert config.bf16 is False
-    assert config.num_epochs == 1
-    assert config.batch_size == 1
-    assert "encoder" in config.lora_target_modules
+def test_release_url_points_at_github_assets():
+    url = release_url("model.safetensors")
+    assert url == f"https://github.com/kiranbeethoju/onesystem/releases/download/{RELEASE_TAG}/model.safetensors"
+    assert "model.safetensors" in REQUIRED_FILES and "config.json" in REQUIRED_FILES
 
 
-def test_manifest_names_the_saved_model():
-    document = build_manifest({"domains": 17, "train_rows": 1360, "eval_rows": 340})
-    assert document["name"] == "OneSystem"
-    assert document["base_checkpoint"] == BASE_CHECKPOINT
-    assert document["dataset_split"] == "development"
-    assert document["train_rows"] == 1360
+def test_normalise_tasks_accepts_lists_and_dicts():
+    specs = normalise_tasks({
+        "intent": ["refund", "other"],
+        "areas": {"labels": ["billing", "mobile"], "multi_label": True, "threshold": 0.4},
+        "card": {"labels": {"pin": "new PIN", "lost": "card missing"}},
+    })
+    assert specs["intent"]["labels"] == ["refund", "other"]
+    assert specs["intent"]["multi_label"] is False
+    assert specs["areas"]["multi_label"] is True and specs["areas"]["threshold"] == 0.4
+    assert specs["card"]["labels"] == ["pin", "lost"]
+    assert specs["card"]["descriptions"]["pin"] == "new PIN"
+
+
+def test_normalise_tasks_rejects_bad_input():
+    with pytest.raises(ValueError):
+        normalise_tasks({})
+    with pytest.raises(ValueError, match="at least two"):
+        normalise_tasks({"x": ["only"]})
+    with pytest.raises(ValueError, match="duplicate"):
+        normalise_tasks({"x": ["a", "a"]})
 
 
 def test_prediction_helpers_compare_sets():
     record = {
         "input": "Stop the bot and get me a person.",
-        "output": {
-            "classifications": [
-                {
-                    "task": "handoff",
-                    "labels": ["yes", "no"],
-                    "true_label": ["yes"],
-                    "multi_label": False,
-                }
-            ]
-        },
+        "output": {"classifications": [
+            {"task": "handoff", "labels": ["yes", "no"], "true_label": ["yes"], "multi_label": False},
+        ]},
     }
     assert tasks_from_record(record)["handoff"]["labels"] == ["yes", "no"]
     assert gold_labels(record["output"]["classifications"][0]) == ["yes"]
     assert predicted_labels({"label": "yes", "confidence": 0.8}) == ["yes"]
-    assert predicted_labels(["billing", "access"]) == ["billing", "access"]
-    assert predicted_labels(
-        [{"label": "checkout", "confidence": 0.7}, {"label": "notifications", "confidence": 0.9}]
-    ) == ["checkout", "notifications"]
+    assert predicted_labels({"labels": ["checkout", "notifications"]}) == ["checkout", "notifications"]
+    assert predicted_labels({"label": None, "abstain": True}) == []
+
+
+def test_expected_calibration_error_is_zero_when_confidence_matches_accuracy():
+    assert expected_calibration_error([1.0, 1.0], [1, 1]) == 0.0
+    assert expected_calibration_error([0.95, 0.95], [0, 0]) == pytest.approx(0.95)

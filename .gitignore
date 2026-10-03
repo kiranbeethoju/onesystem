@@ -8,10 +8,12 @@ __pycache__/
 dist/
 build/
 data/raw/
-data/train.jsonl
-data/eval.jsonl
-data/*.lengths.json
-data/*.lengths.npy
+data/*.jsonl
 data/*.npy
+data/*.lengths.json
 output/
 .DS_Store
+
+# Weights are published as release assets, not committed.
+models/onesystem/model.safetensors
+models/onesystem/*.part

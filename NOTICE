@@ -1,16 +1,21 @@
 OneSystem
-Copyright 2026 OneSystem contributors
+Copyright 2026 Kiran Beethoju and OneSystem contributors
 
-This product includes a LoRA adapter trained from the following Apache 2.0 works:
+OneSystem's code, configuration, and published weights are released under the
+Apache License 2.0. The weights are OneSystem's own; no third-party decision
+model is loaded or redistributed at runtime.
 
-- fastino/GLiNER2.5-Decide, a 340M classification checkpoint from Fastino
-  https://huggingface.co/fastino/GLiNER2.5-Decide
+OneSystem was built with the following works, which keep their own licenses:
 
-- fastino/fast-decisions, the public development split used as training data
+- BAAI/bge-base-en-v1.5 (MIT), used to initialise the encoder parameters
+  before OneSystem training
+  https://huggingface.co/BAAI/bge-base-en-v1.5
+
+- fastino/fast-decisions (Apache 2.0), the public development split used as
+  training data
   https://huggingface.co/datasets/fastino/fast-decisions
 
-- gliner2, the training and inference library
-  https://github.com/fastino-ai/GLiNER2
+- PyTorch, Hugging Face Transformers, safetensors, and huggingface_hub, used
+  as runtime libraries under their own licenses.
 
-OneSystem does not claim those upstream releases as original work. The adapter
-and the code in this repository are released under the Apache License 2.0.
+OneSystem does not claim those upstream releases as original work.

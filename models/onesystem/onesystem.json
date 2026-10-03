@@ -1,22 +1,70 @@
 {
   "name": "OneSystem",
-  "version": "0.1.0",
-  "base_checkpoint": "fastino/GLiNER2.5-Decide",
+  "version": "0.2.0",
+  "model_type": "onesystem",
+  "encoder_init": "BAAI/bge-base-en-v1.5",
   "dataset": "fastino/fast-decisions",
   "dataset_split": "development",
-  "holdout": "20 percent of each domain inside the public development split",
-  "method": "lora",
-  "lora_r": 8,
-  "lora_alpha": 16,
-  "lora_target_modules": [
-    "encoder",
-    "classifier"
-  ],
-  "epochs": 1,
-  "max_len": 384,
-  "seed": 42,
-  "adapter_dir": "models/onesystem",
+  "holdout": "per domain: 20 percent eval, 10 percent calibration, rest train",
+  "training": {
+    "encoder": "BAAI/bge-base-en-v1.5",
+    "epochs": 6,
+    "batch_size": 16,
+    "encoder_lr": 3e-05,
+    "head_lr": 0.0001,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.06,
+    "max_grad_norm": 1.0,
+    "max_text_len": 320,
+    "max_label_len": 32,
+    "seed": 42
+  },
   "domains": 17,
-  "train_rows": 1360,
-  "eval_rows": 340
+  "train_rows": 1190,
+  "calib_rows": 170,
+  "eval_rows": 340,
+  "zero_shot_eval": {
+    "exact_match": 0.4534,
+    "ece": 0.1102
+  },
+  "train_run": {
+    "steps": 762,
+    "history": [
+      {
+        "epoch": 1,
+        "loss": 1.3746
+      },
+      {
+        "epoch": 2,
+        "loss": 0.7383
+      },
+      {
+        "epoch": 3,
+        "loss": 0.4153
+      },
+      {
+        "epoch": 4,
+        "loss": 0.2312
+      },
+      {
+        "epoch": 5,
+        "loss": 0.1279
+      },
+      {
+        "epoch": 6,
+        "loss": 0.0862
+      }
+    ],
+    "seconds": 972.4
+  },
+  "calibration": {
+    "temperature": 2.1,
+    "calib_nll": 1.0598
+  },
+  "eval": {
+    "exact_match": 0.5517,
+    "ece": 0.0742,
+    "heads": 580,
+    "correct": 320
+  }
 }

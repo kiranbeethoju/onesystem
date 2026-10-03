@@ -16,6 +16,7 @@ from onesystem import DATASET_ID
 
 RAW_DIR = Path("data/raw")
 TRAIN_PATH = Path("data/train.jsonl")
+CALIB_PATH = Path("data/calib.jsonl")
 EVAL_PATH = Path("data/eval.jsonl")
 
 
@@ -140,24 +141,55 @@ def download_raw(destination: Path = RAW_DIR) -> List[Path]:
     return files
 
 
+def split_three_way(
+    rows_by_domain: Mapping[str, Sequence[Mapping]],
+    eval_ratio: float = 0.2,
+    calib_ratio: float = 0.1,
+    seed: int = 42,
+) -> tuple[List[Dict], List[Dict], List[Dict]]:
+    """Per domain: hold out an eval slice, then a calibration slice, train on the rest.
+
+    The calibration slice fits the confidence temperature and is never scored,
+    so the eval slice stays untouched by both training and calibration.
+    """
+    if not 0.0 < eval_ratio + calib_ratio < 1.0:
+        raise ValueError("eval_ratio + calib_ratio must be between 0 and 1")
+    rest, heldout = split_by_domain(rows_by_domain, eval_ratio=eval_ratio, seed=seed)
+    # Re-group the remaining rows by domain so the calibration cut is also per domain.
+    regrouped: Dict[str, List[Dict]] = {}
+    domain_of = {}
+    for domain, rows in rows_by_domain.items():
+        for row in rows:
+            domain_of[json.dumps(row, sort_keys=True)] = domain
+    for row in rest:
+        regrouped.setdefault(domain_of[json.dumps(row, sort_keys=True)], []).append(row)
+    share = calib_ratio / (1.0 - eval_ratio)
+    train, calib = split_by_domain(regrouped, eval_ratio=share, seed=seed + 1)
+    return train, calib, heldout
+
+
 def prepare_splits(
     raw_dir: Path = RAW_DIR,
     train_path: Path = TRAIN_PATH,
+    calib_path: Path = CALIB_PATH,
     eval_path: Path = EVAL_PATH,
     eval_ratio: float = 0.2,
+    calib_ratio: float = 0.1,
     seed: int = 42,
     download: bool = True,
 ) -> Dict[str, int]:
-    """Write train and eval jsonl files. Returns row counts."""
+    """Write train, calibration and eval jsonl files. Returns row counts."""
     files = sorted(raw_dir.rglob("*.jsonl"))
     if not files and download:
         files = download_raw(raw_dir)
     grouped = group_jsonl_files(files)
-    train, heldout = split_by_domain(grouped, eval_ratio=eval_ratio, seed=seed)
+    train, calib, heldout = split_three_way(grouped, eval_ratio=eval_ratio, calib_ratio=calib_ratio, seed=seed)
     write_jsonl(train_path, train)
+    write_jsonl(calib_path, calib)
     write_jsonl(eval_path, heldout)
     return {
         "domains": len(grouped),
         "train_rows": len(train),
+        "calib_rows": len(calib),
         "eval_rows": len(heldout),
     }
