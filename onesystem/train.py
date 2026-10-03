@@ -34,15 +34,17 @@ MANIFEST_FILE = "onesystem.json"
 @dataclass
 class TrainConfig:
     encoder: str = DEFAULT_ENCODER
-    epochs: int = 6
+    epochs: int = 8
     batch_size: int = 16
     encoder_lr: float = 3e-5
     head_lr: float = 1e-4
     weight_decay: float = 0.01
     warmup_ratio: float = 0.06
     max_grad_norm: float = 1.0
-    max_text_len: int = 512
-    max_label_len: int = 64
+    max_text_len: int = 8192
+    max_label_len: int = 128
+    # For plain LMs (e.g. ModernBERT) set >0. Embedding backbones (GTE/Jina/BGE) use 0.
+    freeze_encoder_epochs: int = 0
     seed: int = 42
     output_dir: str = str(LOCAL_MODEL_DIR)
     skip_zero_shot: bool = False
@@ -128,12 +130,23 @@ def batch_loss(network, tokenizer, batch: List[Pair], device):
     return total / len(batch)
 
 
+def _set_encoder_trainable(network, trainable: bool) -> None:
+    for name, param in network.named_parameters():
+        if name.startswith("encoder."):
+            param.requires_grad = trainable
+
+
 def train(network, tokenizer, pairs: List[Pair], config: TrainConfig, device: str) -> Dict:
     import torch
 
     network.train()
     head_params = [p for n, p in network.named_parameters() if not n.startswith("encoder.")]
     encoder_params = [p for n, p in network.named_parameters() if n.startswith("encoder.")]
+    freeze_epochs = max(0, int(config.freeze_encoder_epochs))
+    if freeze_epochs:
+        _set_encoder_trainable(network, False)
+        print(f"freezing encoder for first {freeze_epochs} epoch(s)", flush=True)
+
     optimizer = torch.optim.AdamW(
         [
             {"params": encoder_params, "lr": config.encoder_lr},
@@ -156,6 +169,9 @@ def train(network, tokenizer, pairs: List[Pair], config: TrainConfig, device: st
     step = 0
     started = time.time()
     for epoch in range(config.epochs):
+        if freeze_epochs and epoch == freeze_epochs:
+            _set_encoder_trainable(network, True)
+            print(f"unfreezing encoder at epoch {epoch + 1} (lr {config.encoder_lr})", flush=True)
         order = list(range(len(pairs)))
         random.shuffle(order)
         running = 0.0
@@ -207,8 +223,11 @@ def main(argv=None) -> None:
     parser.add_argument("--encoder", default=DEFAULT_ENCODER)
     parser.add_argument("--epochs", type=int, default=6)
     parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--max-text-len", type=int, default=512, help="text tokens including task prefix; max 512 for bge-base")
-    parser.add_argument("--max-label-len", type=int, default=64, help="label tokens including task prefix / description")
+    parser.add_argument("--max-text-len", type=int, default=8192, help="text tokens including task prefix; max depends on --encoder")
+    parser.add_argument("--max-label-len", type=int, default=128, help="label tokens including task prefix / description")
+    parser.add_argument("--freeze-encoder-epochs", type=int, default=0, help="train head only for N epochs before unfreezing encoder")
+    parser.add_argument("--encoder-lr", type=float, default=3e-5)
+    parser.add_argument("--head-lr", type=float, default=1e-4)
     parser.add_argument("--output-dir", default=str(LOCAL_MODEL_DIR))
     parser.add_argument("--skip-zero-shot", action="store_true")
     args = parser.parse_args(argv)
@@ -227,6 +246,9 @@ def main(argv=None) -> None:
         batch_size=args.batch_size,
         max_text_len=args.max_text_len,
         max_label_len=args.max_label_len,
+        freeze_encoder_epochs=args.freeze_encoder_epochs,
+        encoder_lr=args.encoder_lr,
+        head_lr=args.head_lr,
         output_dir=args.output_dir,
         skip_zero_shot=args.skip_zero_shot,
     )
@@ -255,7 +277,7 @@ def main(argv=None) -> None:
         max_text_len=config.max_text_len,
         max_label_len=config.max_label_len,
     )
-    tokenizer = AutoTokenizer.from_pretrained(config.encoder)
+    tokenizer = AutoTokenizer.from_pretrained(config.encoder, trust_remote_code=True)
     network.to(device)
 
     extra: Dict = {}

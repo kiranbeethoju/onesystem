@@ -19,7 +19,7 @@
     <p class="lede">A System‑1 decision engine for LLM pipelines. Route, filter, and abstain in one forward pass — then call JEV, Laya, or GPT only when the request is complex. Not a chat model. Not a competitor to reasoning systems.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/kiranbeethoju/onesystem">GitHub</a>
-      <a class="btn" href="https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.1">v0.2.1 weights</a>
+      <a class="btn" href="https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0">v0.3.0 weights (8k)</a>
       <a class="btn" href="#pipeline">Pipeline</a>
       <a class="btn" href="#cookbook">Cookbook</a>
     </div>
@@ -29,23 +29,23 @@
     <section class="strip">
       <div>
         <span class="k">Text context</span>
-        <strong>512 tokens</strong>
-        <em>~350–450 English words · ~2.5–3.5k chars</em>
+        <strong>8192 tokens</strong>
+        <em>~6k–7k English words · GTE-base 8k</em>
       </div>
       <div>
         <span class="k">Label context</span>
-        <strong>64 tokens</strong>
+        <strong>128 tokens</strong>
         <em>name + optional description</em>
       </div>
       <div>
-        <span class="k">Encoder ceiling</span>
-        <strong>512 tokens</strong>
-        <em>BGE-base hard max · v0.2.1 uses it</em>
+        <span class="k">Encoder</span>
+        <strong>gte-base-en-v1.5</strong>
+        <em>long-context embedding backbone</em>
       </div>
       <div>
-        <span class="k">v0.2.1 holdout</span>
-        <strong>0.453 → 0.543</strong>
-        <em>exact match · ECE 0.087</em>
+        <span class="k">v0.3.0 holdout</span>
+        <strong>0.457 → 0.590</strong>
+        <em>exact match · ECE 0.057</em>
       </div>
     </section>
 
@@ -78,15 +78,15 @@ Done             Plan · tools · draft</code></pre>
 
     <section id="limits">
       <h2>Input limits</h2>
-      <p class="section-lede">Hard numbers from OneSystem <strong>v0.2.1</strong> <code>config.json</code>. Longer strings are truncated (start kept, tail dropped).</p>
+      <p class="section-lede">Hard numbers from OneSystem <strong>v0.3.0</strong> <code>config.json</code>. Longer strings are truncated (start kept, tail dropped).</p>
       <div class="type-grid">
         <article>
-          <h3>512 tokens of text</h3>
-          <p>Includes <code>"{task}: {text}"</code>. Realistic English: about <strong>350–450 words</strong> or <strong>2.5–3.5k characters</strong>. This is the BGE-base ceiling; beyond 512 needs a different encoder and a retrain.</p>
+          <h3>8192 tokens of text</h3>
+          <p>Includes <code>"{task}: {text}"</code>. About <strong>6k–7k English words</strong> / ~30–40k characters. Backbone is GTE-base (8k). Short tickets still pad only to the batch max — you only pay 8k when the document is long.</p>
         </article>
         <article>
-          <h3>64 tokens per label</h3>
-          <p>Includes task prefix and description. Prefer short names; keep descriptions under ~40–50 words or they truncate.</p>
+          <h3>128 tokens per label</h3>
+          <p>Includes task prefix and description. Prefer short names; keep descriptions under ~80–100 words or they truncate.</p>
         </article>
         <article>
           <h3>2–16 labels per task</h3>

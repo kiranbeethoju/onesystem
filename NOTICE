@@ -7,8 +7,12 @@ model is loaded or redistributed at runtime.
 
 OneSystem was built with the following works, which keep their own licenses:
 
-- BAAI/bge-base-en-v1.5 (MIT), used to initialise the encoder parameters
-  before OneSystem training
+- Alibaba-NLP/gte-base-en-v1.5 (Apache 2.0), used to initialise the encoder
+  parameters before OneSystem training (v0.3.0+, 8192-token context)
+  https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5
+
+- BAAI/bge-base-en-v1.5 (MIT), used to initialise earlier OneSystem releases
+  (v0.2.x, 512-token context)
   https://huggingface.co/BAAI/bge-base-en-v1.5
 
 - fastino/fast-decisions (Apache 2.0), the public development split used as

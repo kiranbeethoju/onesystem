@@ -6,18 +6,18 @@ bidirectional encoder plus a label-scoring head, saved as plain safetensors.
 It does not load or depend on GLiNER checkpoints.
 """
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 MODEL_NAME = "OneSystem"
 # Encoder used to initialise training. After training, OneSystem ships the full
 # encoder weights under its own name and never downloads this checkpoint again.
-DEFAULT_ENCODER = "BAAI/bge-base-en-v1.5"
-# BAAI/bge-base-en-v1.5 position embeddings stop at 512 tokens. That is the hard
-# ceiling for this backbone; longer context needs a different encoder.
-ENCODER_MAX_POSITIONS = 512
+# Long-context embedding backbone (8192). Prefer contrastive/embedding models
+# over plain LMs — fine-tuning ModernBERT collapsed cosine geometry.
+DEFAULT_ENCODER = "Alibaba-NLP/gte-base-en-v1.5"
+ENCODER_MAX_POSITIONS = 8192
 DATASET_ID = "fastino/fast-decisions"
 RELEASE_REPO = "kiranbeethoju/onesystem"
-RELEASE_TAG = "v0.2.1"
+RELEASE_TAG = "v0.3.0"
 
 __all__ = [
     "DATASET_ID",

@@ -4,7 +4,7 @@
 
 Pass a short document and the labels that are legal for a decision. OneSystem returns a typed answer, a probability table, and calibrated confidence in **one forward pass**. It does **not** generate text. It does **not** replace reasoning models (JEV, Laya, GPT, …) — it sits **in front of them** so simple requests never pay for an LLM call.
 
-**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.2.1](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.1) · **Cookbook + live outputs:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/)
+**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.3.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0) · **Cookbook + live outputs:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/)
 
 ---
 
@@ -114,16 +114,16 @@ Colab: `pip install -e .` then `OneSystem.load(device="cuda")`. Set `ONESYSTEM_H
 
 ## 5. Performance, context, calibration
 
-| Metric | v0.2.1 |
+| Metric | v0.3.0 |
 |---|---|
-| Local holdout exact match | Zero-shot **0.453** → fine-tuned **0.543** (315/580 heads) |
-| Expected calibration error | **0.087** (temperature **2.1**) |
-| Text context | **512 tokens** (~350–450 English words / ~2.5–3.5k chars), incl. task prefix |
-| Label context | **64 tokens** (name + optional description) |
-| Encoder ceiling | **512** — BGE-base hard max; v0.2.1 uses the full window |
-| Beyond 512? | Needs a longer-context `--encoder` and a retrain |
-| Latency (ballpark) | Tens of ms/task on GPU/MPS after warmup |
-| Weights | ~420 MB `model.safetensors` |
+| Encoder init | [`Alibaba-NLP/gte-base-en-v1.5`](https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5) (Apache 2.0, ~137M, **8192** ctx) |
+| Text context | **8192 tokens** (~6k–7k English words / ~30–40k chars), incl. task prefix |
+| Label context | **128 tokens** (name + optional description) |
+| Local holdout | Zero-shot **0.457** → fine-tuned **0.590** exact match · ECE **0.057** · T **2.5** |
+| Latency | Short tickets stay fast (dynamic pad); full 8k docs cost more |
+| Weights | Full encoder in `model.safetensors` (~550 MB) + `encoder/` architecture code |
+
+v0.2.x used BGE-base at **512** tokens. v0.3.0 uses a long-context **embedding** backbone (GTE) for 8k — plain LMs like ModernBERT collapsed cosine scores when fine-tuned for this task.
 
 Holdout is a cut of the public development split — **not** Fastino’s unpublished test benchmark. Longer text is truncated (start kept). English. Prefer **2–16** labels per task.
 
@@ -139,9 +139,9 @@ text  --"{task}: {text}"-->  encoder → mean → proj → normalize ─┐
 label --"{task}: {label}"--> encoder → mean → proj → normalize ─┘
 ```
 
-- Encoder initialised from [`BAAI/bge-base-en-v1.5`](https://huggingface.co/BAAI/bge-base-en-v1.5) (MIT), then fine-tuned; saved inside OneSystem (no GLiNER at runtime).
+- Encoder initialised from [`Alibaba-NLP/gte-base-en-v1.5`](https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5) (Apache 2.0, 8192 ctx), then fine-tuned; saved inside OneSystem (no GLiNER at runtime).
 - Data: public [`fastino/fast-decisions`](https://huggingface.co/datasets/fastino/fast-decisions) development split — 1,700 rows, 17 domains; per domain **70% train / 10% calib / 20% eval**.
-- Recipe: 6 epochs, AdamW (encoder 3e-5, head 1e-4), eager attention; **max_text_len=512**, **max_label_len=64**; temperature fit on calib only.
+- Recipe: 6 epochs, AdamW (encoder 3e-5, head 1e-4); **max_text_len=8192**, **max_label_len=128**; temperature fit on calib only.
 - Pure PyTorch + Transformers — `python -m onesystem.train` / `onesystem.evaluate`.
 
 ```bash

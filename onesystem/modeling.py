@@ -36,13 +36,13 @@ WEIGHTS_FILE = "model.safetensors"
 @dataclass
 class OneSystemConfig:
     name: str = "OneSystem"
-    version: str = "0.2.1"
+    version: str = "0.3.0"
     model_type: str = "onesystem"
     encoder_name: str = ""
     encoder_config: Dict = field(default_factory=dict)
     hidden_size: int = 768
-    max_text_len: int = 512
-    max_label_len: int = 64
+    max_text_len: int = 8192
+    max_label_len: int = 128
     text_template: str = "{task}: {text}"
     label_template: str = "{task}: {label}"
     described_label_template: str = "{task}: {label}. {description}"
@@ -92,6 +92,50 @@ def _clean_encoder_config(config: Dict) -> Dict:
     return {key: value for key, value in config.items() if key not in dropped}
 
 
+def _load_encoder_pretrained(encoder_name: str):
+    from transformers import AutoModel
+
+    kwargs = {"trust_remote_code": True}
+    # Prefer eager attention when the backbone accepts it (MPS dropout).
+    for extra in (
+        {"add_pooling_layer": False, "attn_implementation": "eager"},
+        {"attn_implementation": "eager"},
+        {"add_pooling_layer": False},
+        {},
+    ):
+        try:
+            return AutoModel.from_pretrained(encoder_name, **kwargs, **extra)
+        except TypeError:
+            continue
+    return AutoModel.from_pretrained(encoder_name, trust_remote_code=True)
+
+
+def _build_encoder_from_config(hf_config):
+    from transformers import AutoModel
+
+    for kwargs in (
+        {"trust_remote_code": True, "add_pooling_layer": False},
+        {"trust_remote_code": True},
+        {"add_pooling_layer": False},
+        {},
+    ):
+        try:
+            return AutoModel.from_config(hf_config, **kwargs)
+        except TypeError:
+            continue
+    return AutoModel.from_config(hf_config, trust_remote_code=True)
+
+
+def _save_encoder_architecture(encoder, directory: Path) -> None:
+    """Persist HF config + remote-code modules so loads do not need the Hub."""
+    enc_dir = Path(directory) / "encoder"
+    enc_dir.mkdir(parents=True, exist_ok=True)
+    encoder.save_pretrained(enc_dir, safe_serialization=True)
+    for pattern in ("*.safetensors", "*.bin", "*.pt", "*.msgpack", "model.safetensors.index.json"):
+        for path in enc_dir.glob(pattern):
+            path.unlink()
+
+
 class OneSystemModel(nn.Module):
     """Encoder plus scoring head. Use :class:`onesystem.model.OneSystem` for inference."""
 
@@ -102,9 +146,6 @@ class OneSystemModel(nn.Module):
         self.proj = _identity_projection(config.hidden_size)
         # Learned logit scale, initialised to 1 / 0.05 the way contrastive encoders do.
         self.log_scale = nn.Parameter(torch.tensor(math.log(20.0)))
-        # Multi-label heads use a sigmoid per label; encoder cosines sit around
-        # 0.65, so a learned offset centres the decision boundary.
-        self.multi_label_bias = nn.Parameter(torch.tensor(-13.0))
 
     # ------------------------------------------------------------- construction
     @classmethod
@@ -117,8 +158,10 @@ class OneSystemModel(nn.Module):
         """
         from transformers import AutoConfig, AutoModel
 
-        encoder = AutoModel.from_pretrained(encoder_name, add_pooling_layer=False, attn_implementation="eager")
-        encoder_config = _clean_encoder_config(AutoConfig.from_pretrained(encoder_name).to_dict())
+        encoder = _load_encoder_pretrained(encoder_name)
+        encoder_config = _clean_encoder_config(
+            AutoConfig.from_pretrained(encoder_name, trust_remote_code=True).to_dict()
+        )
         config = OneSystemConfig(
             encoder_name=encoder_name,
             encoder_config=encoder_config,
@@ -130,13 +173,19 @@ class OneSystemModel(nn.Module):
     @classmethod
     def from_directory(cls, directory: Path, device: Optional[str] = None) -> "OneSystemModel":
         from safetensors.torch import load_file
-        from transformers import AutoConfig, AutoModel
+        from transformers import AutoConfig
 
+        directory = Path(directory)
         config = OneSystemConfig.load(directory)
-        encoder_config = dict(config.encoder_config)
-        model_type = encoder_config.pop("model_type")
-        hf_config = AutoConfig.for_model(model_type, **encoder_config)
-        encoder = AutoModel.from_config(hf_config, add_pooling_layer=False)
+        encoder_dir = directory / "encoder"
+        if encoder_dir.is_dir():
+            hf_config = AutoConfig.from_pretrained(str(encoder_dir), trust_remote_code=True)
+            encoder = _build_encoder_from_config(hf_config)
+        else:
+            encoder_config = dict(config.encoder_config)
+            model_type = encoder_config.pop("model_type")
+            hf_config = AutoConfig.for_model(model_type, **encoder_config)
+            encoder = _build_encoder_from_config(hf_config)
         model = cls(config, encoder)
         state = load_file(str(directory / WEIGHTS_FILE))
         missing, unexpected = model.load_state_dict(state, strict=False)
@@ -156,6 +205,7 @@ class OneSystemModel(nn.Module):
         self.config.save(directory)
         state = {key: value.detach().cpu().contiguous() for key, value in self.state_dict().items()}
         save_file(state, str(directory / WEIGHTS_FILE), metadata={"format": "pt", "name": self.config.name})
+        _save_encoder_architecture(self.encoder, directory)
         if tokenizer is not None:
             tokenizer.save_pretrained(str(directory))
 

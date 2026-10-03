@@ -83,7 +83,7 @@ class OneSystem:
         directory = resolve(source)
         device = device or default_device()
         network = OneSystemModel.from_directory(Path(directory), device=device)
-        tokenizer = AutoTokenizer.from_pretrained(str(directory))
+        tokenizer = AutoTokenizer.from_pretrained(str(directory), trust_remote_code=True)
         return cls(network, tokenizer, device, name=network.config.name)
 
     @classmethod

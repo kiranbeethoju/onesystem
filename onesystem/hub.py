@@ -12,7 +12,18 @@ from typing import List, Optional
 from onesystem import RELEASE_REPO, RELEASE_TAG
 
 REQUIRED_FILES = ["config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json"]
-OPTIONAL_FILES = ["special_tokens_map.json", "vocab.txt", "onesystem.json", "eval.json"]
+OPTIONAL_FILES = [
+    "special_tokens_map.json",
+    "vocab.txt",
+    "onesystem.json",
+    "eval.json",
+]
+# GitHub release assets cannot be nested paths; flatten encoder/ architecture files.
+ENCODER_RELEASE_FILES = {
+    "encoder-config.json": "encoder/config.json",
+    "encoder-configuration.py": "encoder/configuration.py",
+    "encoder-modeling.py": "encoder/modeling.py",
+}
 
 LOCAL_MODEL_DIR = Path("models/onesystem")
 
@@ -75,6 +86,12 @@ def download_release(repo: str = RELEASE_REPO, tag: str = RELEASE_TAG, destinati
         target = directory / name
         if not target.is_file():
             _download(release_url(name, repo, tag), target)
+    for asset_name, relative in ENCODER_RELEASE_FILES.items():
+        target = directory / relative
+        if target.is_file():
+            continue
+        if _download(release_url(asset_name, repo, tag), target):
+            continue
     return directory
 
 
@@ -102,4 +119,23 @@ def resolve(source: Optional[str] = None) -> Path:
 
 
 def published_files(directory: Path) -> List[Path]:
-    return [directory / name for name in REQUIRED_FILES + OPTIONAL_FILES if (directory / name).is_file()]
+    paths = [directory / name for name in REQUIRED_FILES + OPTIONAL_FILES if (directory / name).is_file()]
+    for relative in ENCODER_RELEASE_FILES.values():
+        path = directory / relative
+        if path.is_file():
+            paths.append(path)
+    return paths
+
+
+def release_asset_map(directory: Path) -> dict:
+    """Local path → GitHub release asset name (flattened encoder/*)."""
+    mapping = {}
+    for name in REQUIRED_FILES + OPTIONAL_FILES:
+        path = directory / name
+        if path.is_file():
+            mapping[str(path)] = name
+    for asset_name, relative in ENCODER_RELEASE_FILES.items():
+        path = directory / relative
+        if path.is_file():
+            mapping[str(path)] = asset_name
+    return mapping

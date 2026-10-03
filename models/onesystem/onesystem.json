@@ -1,22 +1,23 @@
 {
   "name": "OneSystem",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "model_type": "onesystem",
-  "encoder_init": "BAAI/bge-base-en-v1.5",
+  "encoder_init": "Alibaba-NLP/gte-base-en-v1.5",
   "dataset": "fastino/fast-decisions",
   "dataset_split": "development",
   "holdout": "per domain: 20 percent eval, 10 percent calibration, rest train",
   "training": {
-    "encoder": "BAAI/bge-base-en-v1.5",
-    "epochs": 6,
-    "batch_size": 12,
+    "encoder": "Alibaba-NLP/gte-base-en-v1.5",
+    "epochs": 5,
+    "batch_size": 8,
     "encoder_lr": 3e-05,
     "head_lr": 0.0001,
     "weight_decay": 0.01,
     "warmup_ratio": 0.06,
     "max_grad_norm": 1.0,
-    "max_text_len": 512,
-    "max_label_len": 64,
+    "max_text_len": 8192,
+    "max_label_len": 128,
+    "freeze_encoder_epochs": 0,
     "seed": 42
   },
   "domains": 17,
@@ -24,47 +25,43 @@
   "calib_rows": 170,
   "eval_rows": 340,
   "zero_shot_eval": {
-    "exact_match": 0.4534,
-    "ece": 0.1102
+    "exact_match": 0.4569,
+    "ece": 0.0249
   },
   "train_run": {
-    "steps": 1020,
+    "steps": 1270,
     "history": [
       {
         "epoch": 1,
-        "loss": 1.3536
+        "loss": 1.1931
       },
       {
         "epoch": 2,
-        "loss": 0.7379
+        "loss": 0.6382
       },
       {
         "epoch": 3,
-        "loss": 0.3757
+        "loss": 0.2829
       },
       {
         "epoch": 4,
-        "loss": 0.2068
+        "loss": 0.1285
       },
       {
         "epoch": 5,
-        "loss": 0.1127
-      },
-      {
-        "epoch": 6,
-        "loss": 0.0659
+        "loss": 0.0459
       }
     ],
-    "seconds": 1046.6
+    "seconds": 1304.0
   },
   "calibration": {
-    "temperature": 2.1,
-    "calib_nll": 1.0401
+    "temperature": 2.5,
+    "calib_nll": 1.0648
   },
   "eval": {
-    "exact_match": 0.5431,
-    "ece": 0.0868,
+    "exact_match": 0.5897,
+    "ece": 0.0572,
     "heads": 580,
-    "correct": 315
+    "correct": 342
   }
 }
