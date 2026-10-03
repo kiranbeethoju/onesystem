@@ -1,0 +1,16 @@
+OneSystem
+Copyright 2026 OneSystem contributors
+
+This product includes a LoRA adapter trained from the following Apache 2.0 works:
+
+- fastino/GLiNER2.5-Decide, a 340M classification checkpoint from Fastino
+  https://huggingface.co/fastino/GLiNER2.5-Decide
+
+- fastino/fast-decisions, the public development split used as training data
+  https://huggingface.co/datasets/fastino/fast-decisions
+
+- gliner2, the training and inference library
+  https://github.com/fastino-ai/GLiNER2
+
+OneSystem does not claim those upstream releases as original work. The adapter
+and the code in this repository are released under the Apache License 2.0.

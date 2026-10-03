@@ -1,0 +1,22 @@
+{
+  "name": "OneSystem",
+  "version": "0.1.0",
+  "base_checkpoint": "fastino/GLiNER2.5-Decide",
+  "dataset": "fastino/fast-decisions",
+  "dataset_split": "development",
+  "holdout": "20 percent of each domain inside the public development split",
+  "method": "lora",
+  "lora_r": 8,
+  "lora_alpha": 16,
+  "lora_target_modules": [
+    "encoder",
+    "classifier"
+  ],
+  "epochs": 1,
+  "max_len": 384,
+  "seed": 42,
+  "adapter_dir": "models/onesystem",
+  "domains": 17,
+  "train_rows": 1360,
+  "eval_rows": 340
+}

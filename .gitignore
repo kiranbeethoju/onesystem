@@ -1,0 +1,17 @@
+.venv/
+.venv-decide/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+data/raw/
+data/train.jsonl
+data/eval.jsonl
+data/*.lengths.json
+data/*.lengths.npy
+data/*.npy
+output/
+.DS_Store

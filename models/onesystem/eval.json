@@ -1,0 +1,135 @@
+{
+  "name": "OneSystem",
+  "eval_rows": 340,
+  "exact_match": 0.6793103448275862,
+  "heads": 580,
+  "correct": 394,
+  "per_task": {
+    "action": {
+      "correct": 14,
+      "heads": 20,
+      "accuracy": 0.7
+    },
+    "asking_status": {
+      "correct": 13,
+      "heads": 20,
+      "accuracy": 0.65
+    },
+    "aspects": {
+      "correct": 9,
+      "heads": 20,
+      "accuracy": 0.45
+    },
+    "category": {
+      "correct": 11,
+      "heads": 20,
+      "accuracy": 0.55
+    },
+    "contains_pii": {
+      "correct": 16,
+      "heads": 20,
+      "accuracy": 0.8
+    },
+    "doc_type": {
+      "correct": 17,
+      "heads": 20,
+      "accuracy": 0.85
+    },
+    "feedback_type": {
+      "correct": 15,
+      "heads": 20,
+      "accuracy": 0.75
+    },
+    "field": {
+      "correct": 7,
+      "heads": 20,
+      "accuracy": 0.35
+    },
+    "format": {
+      "correct": 17,
+      "heads": 20,
+      "accuracy": 0.85
+    },
+    "genres": {
+      "correct": 12,
+      "heads": 20,
+      "accuracy": 0.6
+    },
+    "intent": {
+      "correct": 45,
+      "heads": 60,
+      "accuracy": 0.75
+    },
+    "is_phishing": {
+      "correct": 11,
+      "heads": 20,
+      "accuracy": 0.55
+    },
+    "needs_reply": {
+      "correct": 13,
+      "heads": 20,
+      "accuracy": 0.65
+    },
+    "product_area": {
+      "correct": 4,
+      "heads": 20,
+      "accuracy": 0.2
+    },
+    "program": {
+      "correct": 19,
+      "heads": 20,
+      "accuracy": 0.95
+    },
+    "queue": {
+      "correct": 11,
+      "heads": 20,
+      "accuracy": 0.55
+    },
+    "request": {
+      "correct": 12,
+      "heads": 20,
+      "accuracy": 0.6
+    },
+    "result": {
+      "correct": 19,
+      "heads": 20,
+      "accuracy": 0.95
+    },
+    "sentiment": {
+      "correct": 35,
+      "heads": 40,
+      "accuracy": 0.875
+    },
+    "should_handoff": {
+      "correct": 17,
+      "heads": 20,
+      "accuracy": 0.85
+    },
+    "sport": {
+      "correct": 15,
+      "heads": 20,
+      "accuracy": 0.75
+    },
+    "topic": {
+      "correct": 27,
+      "heads": 40,
+      "accuracy": 0.675
+    },
+    "upset": {
+      "correct": 12,
+      "heads": 20,
+      "accuracy": 0.6
+    },
+    "urgency": {
+      "correct": 6,
+      "heads": 20,
+      "accuracy": 0.3
+    },
+    "urgent": {
+      "correct": 17,
+      "heads": 20,
+      "accuracy": 0.85
+    }
+  },
+  "note": "Scored on a holdout cut from the public development split. This is not the held-out fast-decisions test benchmark."
+}
