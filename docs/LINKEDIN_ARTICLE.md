@@ -4,9 +4,9 @@ Copy into LinkedIn → Write article. Suggested title below.
 
 ---
 
-**Title:** OneSystem: a System 1 decision model you can actually gate production on
+**Title:** OneSystem: fast typed decisions before expensive AI reasoning
 
-**Subtitle:** Typed labels, calibrated confidence, one forward pass — and cookbooks for support, commerce, fintech, edtech, and clinical schemas.
+**Subtitle:** A System‑1 engine in front of JEV, Laya, or GPT — not a replacement for them.
 
 ---
 
@@ -14,11 +14,11 @@ Most “AI for decisions” today means: call a chat model and hope the JSON com
 
 That’s System 2 — slow, expensive, and easy to overtrust. It’s great for drafting a reply. It’s a weak foundation for *routing*, *triage*, or *policy*.
 
-I open-sourced **OneSystem**: a standalone System 1 decision model.
+I open-sourced **OneSystem**: a production-ready **System‑1 decision engine for LLM pipelines**.
 
 You pass text and the labels that are legal for a decision.  
 It returns a typed answer — single choice, multi-label tags, or an ordinal score — plus calibrated confidence, in **one forward pass**.  
-It does **not** generate text. Loading does **not** pull GLiNER or any other vendor decision checkpoint. The weights are OneSystem’s own (~420 MB on a GitHub release).
+It does **not** generate text. It does **not** replace JEV, Laya, or GPT. It sits **in front of them** so simple requests never pay for a reasoning call. Loading does **not** pull GLiNER; the weights are OneSystem’s own (~420 MB).
 
 Repo: https://github.com/kiranbeethoju/onesystem  
 Live cookbook (code + real outputs): https://kiranbeethoju.github.io/onesystem/

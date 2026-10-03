@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>OneSystem — System 1 decision model</title>
-  <meta name="description" content="OneSystem is a standalone System 1 decision model. Typed labels, calibrated confidence, one forward pass. Cookbook with real outputs." />
+  <title>OneSystem — System‑1 decision engine for LLM pipelines</title>
+  <meta name="description" content="Fast typed decisions before expensive AI reasoning. Calibrated confidence, abstain, one forward pass. Complements JEV, Laya, and LLMs — does not replace them." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
@@ -15,11 +15,12 @@
 
   <header class="hero">
     <p class="brand">OneSystem</p>
-    <h1>Typed decisions in one forward pass</h1>
-    <p class="lede">Pass a document and the labels that are legal. Get a choice, multi-label tags, or an ordinal score — with calibrated confidence. No chat. No GLiNER at runtime.</p>
+    <h1>Fast typed decisions before expensive AI reasoning</h1>
+    <p class="lede">A System‑1 decision engine for LLM pipelines. Route, filter, and abstain in one forward pass — then call JEV, Laya, or GPT only when the request is complex. Not a chat model. Not a competitor to reasoning systems.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/kiranbeethoju/onesystem">GitHub</a>
       <a class="btn" href="https://github.com/kiranbeethoju/onesystem/releases/tag/v0.2.0">v0.2.0 weights</a>
+      <a class="btn" href="#pipeline">Pipeline</a>
       <a class="btn" href="#cookbook">Cookbook</a>
     </div>
   </header>
@@ -45,6 +46,33 @@
         <span class="k">v0.2.0 holdout</span>
         <strong>0.453 → 0.552</strong>
         <em>exact match · ECE 0.074</em>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <h2>In front of JEV / Laya / GPT — not instead of them</h2>
+      <p class="section-lede">Simple requests get a macro. Complex or abstained requests get a reasoning model.</p>
+      <pre class="arch"><code>Incoming request
+        │
+        ▼
+    OneSystem          ← label · probabilities · calibrated confidence · abstain
+        │
+ ┌──────┴──────────┐
+ │                 │
+Simple           Complex / abstain
+ │                 │
+Macro            JEV · Laya · LLM
+ │                 │
+Done             Plan · tools · draft</code></pre>
+      <div class="type-grid">
+        <article>
+          <h3>OneSystem wins</h3>
+          <p>Fixed schema, &lt;50&nbsp;ms class of latency, native probabilities, enterprise routing, human-abstain without prompt hacks.</p>
+        </article>
+        <article>
+          <h3>Reasoning models win</h3>
+          <p>Multi-step policy, memory, tool calls, drafting email — “check eligibility and write the appeal.” Don’t force that through a classifier.</p>
+        </article>
       </div>
     </section>
 
