@@ -1,0 +1,71 @@
+{
+  "track": "raw",
+  "systems": [
+    "openjev"
+  ],
+  "results": {
+    "banking77": [
+      {
+        "system": "openjev",
+        "track": "raw",
+        "n": 3080,
+        "n_labels": 77,
+        "accuracy": 0.5325,
+        "macro_f1": 0.5506,
+        "ece": 0.2738,
+        "nll": 9.764,
+        "error_rate": 0.0,
+        "seconds": 820.6,
+        "latency": {
+          "n": 30,
+          "p50_ms": 288.56,
+          "p95_ms": 308.62,
+          "mean_ms": 293.57
+        },
+        "dataset": "banking77"
+      }
+    ],
+    "clinc150": [
+      {
+        "system": "openjev",
+        "track": "raw",
+        "n": 4500,
+        "n_labels": 150,
+        "accuracy": 0.5522,
+        "macro_f1": 0.5587,
+        "ece": 0.0969,
+        "nll": 10.3148,
+        "error_rate": 0.0,
+        "seconds": 2059.0,
+        "latency": {
+          "n": 30,
+          "p50_ms": 473.7,
+          "p95_ms": 498.4,
+          "mean_ms": 477.39
+        },
+        "dataset": "clinc150"
+      }
+    ],
+    "hwu64": [
+      {
+        "system": "openjev",
+        "track": "raw",
+        "n": 1076,
+        "n_labels": 64,
+        "accuracy": 0.2965,
+        "macro_f1": 0.3479,
+        "ece": 0.1089,
+        "nll": 12.9571,
+        "error_rate": 0.0,
+        "seconds": 188.2,
+        "latency": {
+          "n": 30,
+          "p50_ms": 211.23,
+          "p95_ms": 223.9,
+          "mean_ms": 213.77
+        },
+        "dataset": "hwu64"
+      }
+    ]
+  }
+}

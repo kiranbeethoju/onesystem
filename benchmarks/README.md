@@ -31,5 +31,22 @@ python -m onesystem.domain_adapt \
 
 See the [cookbook § Domain-specific model](https://kiranbeethoju.github.io/onesystem/#domain-adapt).
 
-Published page: https://kiranbeethoju.github.io/onesystem/benchmarks.html  
+## Comparison vs Laya / OpenJev
+
+```bash
+# OneSystem (transformers<5)
+.venv/bin/python benchmarks/run_comparison.py --systems onesystem --track raw
+.venv/bin/python benchmarks/run_comparison.py --systems onesystem --track fine_tuned
+
+# Competitors (separate env)
+.venv-compare/bin/python benchmarks/run_comparison.py --systems laya,openjev --track raw
+
+.venv/bin/python benchmarks/run_comparison.py --merge
+```
+
+Published page: https://kiranbeethoju.github.io/onesystem/comparison.html  
+
+Notes: OpenJev Choice max 24 options → tournament for 64/77/150-way; Laya CLINC150 needs `max_len=2048`; competitor fine-tune N/A in public packages.
+
+Published benchmarks: https://kiranbeethoju.github.io/onesystem/benchmarks.html  
 Raw JSON mirrored in `docs/data/` for GitHub Pages.

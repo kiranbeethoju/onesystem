@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OneSystem — Comparison vs Laya & OpenJev</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    table.bench { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.92rem; }
+    table.bench th, table.bench td { text-align: left; padding: 0.6rem 0.45rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.bench th { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .num { font-variant-numeric: tabular-nums; }
+    .num-win {
+      font-weight: 700; color: var(--accent);
+      background: rgba(15, 110, 86, 0.1); border-radius: 0.3rem;
+      padding: 0.12rem 0.4rem; display: inline-block;
+    }
+    .note-box { color: var(--muted); max-width: 48rem; }
+    .caveat {
+      border-left: 3px solid var(--warn);
+      padding: 0.75rem 1rem; margin: 1rem 0 1.5rem;
+      background: rgba(122, 59, 18, 0.06); color: var(--ink); font-size: 0.92rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="hero">
+    <p class="brand">OneSystem</p>
+    <h1>Comparison board</h1>
+    <p class="lede">OneSystem vs Laya vs OpenJev (Verdict) on the same public intent tests — raw checkpoints and OneSystem domain fine-tunes.</p>
+    <div class="cta">
+      <a class="btn primary" href="index.html">Cookbook</a>
+      <a class="btn" href="benchmarks.html">Benchmarks</a>
+      <a class="btn" href="data/comparison.json">Raw JSON</a>
+      <a class="btn" href="https://github.com/kiranbeethoju/onesystem">GitHub</a>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Protocol</h2>
+      <p class="note-box" id="protocol">Loading…</p>
+      <div class="caveat">
+        <strong>Read before ranking.</strong>
+        OpenJev (Verdict) Choice queries allow at most <strong>24</strong> options; for 64/77/150-way tests the harness uses a sequential elimination tournament (not a single full softmax).
+        Laya and OpenJev public packages have <strong>no documented domain fine-tune</strong> path comparable to <code>onesystem.domain_adapt</code> — the fine-tuned track is OneSystem-only.
+        This board does <strong>not</strong> include hosted TypeSafe Jev (API key / waitlist).
+        Fastino unpublished test scores are a different evaluation and are not mixed in.
+      </div>
+    </section>
+
+    <section id="raw">
+      <h2>Raw / zero-shot track</h2>
+      <p class="section-lede">Released or default checkpoints. No domain fine-tune.</p>
+      <div id="raw-body"><p class="note-box">Loading…</p></div>
+    </section>
+
+    <section id="fine_tuned">
+      <h2>Fine-tuned track</h2>
+      <p class="section-lede">OneSystem domain checkpoints trained on each dataset’s train split only. Competitors: N/A in this harness.</p>
+      <div id="ft-body"><p class="note-box">Loading…</p></div>
+    </section>
+
+    <section>
+      <h2>Systems under test</h2>
+      <ul class="bullets" id="systems-list"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>OneSystem</strong> · <a href="index.html">Cookbook</a> · <a href="benchmarks.html">Benchmarks</a></p>
+  </footer>
+
+  <script>
+    const pct = (x) => (x == null ? "—" : (100 * x).toFixed(1) + "%");
+    const num = (x) => (x == null || Number.isNaN(x) ? "—" : Number(x).toFixed(3));
+    const ms = (x) => (x == null ? "—" : Number(x).toFixed(1) + " ms");
+
+    function bestAccuracy(rows) {
+      let best = -1;
+      for (const r of rows) if (r.accuracy != null && r.accuracy > best) best = r.accuracy;
+      return best;
+    }
+
+    function datasetTable(dataset, rows) {
+      if (!rows || !rows.length) return `<p class="note-box">No rows for ${dataset}.</p>`;
+      const win = bestAccuracy(rows);
+      const body = rows.map((r) => {
+        const acc = pct(r.accuracy);
+        const accCell = r.accuracy === win && r.accuracy != null
+          ? `<span class="num-win">${acc}</span>` : acc;
+        const lat = r.latency ? `${ms(r.latency.p50_ms)} / ${ms(r.latency.p95_ms)}` : "—";
+        return `<tr>
+          <td>${r.system}</td>
+          <td class="num">${accCell}</td>
+          <td class="num">${pct(r.macro_f1)}</td>
+          <td class="num">${num(r.ece)}</td>
+          <td class="num">${num(r.nll)}</td>
+          <td class="num">${lat}</td>
+          <td class="num">${r.seconds != null ? r.seconds + "s" : "—"}</td>
+          <td class="num">${pct(r.error_rate)}</td>
+        </tr>`;
+      }).join("");
+      return `
+        <h3>${dataset}</h3>
+        <table class="bench">
+          <thead><tr>
+            <th>System</th><th>Accuracy</th><th>Macro-F1</th><th>ECE</th><th>NLL</th>
+            <th>Latency p50/p95</th><th>Wall</th><th>Error rate</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table>`;
+    }
+
+    function renderTrack(trackObj, el) {
+      if (!trackObj || !Object.keys(trackObj).length) {
+        el.innerHTML = `<p class="note-box">Results not in this build yet. Run <code>benchmarks/run_comparison.py</code>.</p>`;
+        return;
+      }
+      el.innerHTML = Object.keys(trackObj).sort().map((ds) => datasetTable(ds, trackObj[ds])).join("");
+    }
+
+    async function load() {
+      try {
+        const report = await fetch("data/comparison.json").then((r) => {
+          if (!r.ok) throw new Error("missing");
+          return r.json();
+        });
+        document.getElementById("protocol").textContent = report.protocol || "";
+        const ul = document.getElementById("systems-list");
+        ul.innerHTML = Object.entries(report.systems || {}).map(([k, v]) => `<li><strong>${k}</strong> — ${v}</li>`).join("");
+        (report.notes || []).forEach((n) => {
+          const li = document.createElement("li");
+          li.textContent = n;
+          ul.appendChild(li);
+        });
+        renderTrack((report.tracks || {}).raw, document.getElementById("raw-body"));
+        renderTrack((report.tracks || {}).fine_tuned, document.getElementById("ft-body"));
+      } catch (e) {
+        document.getElementById("raw-body").innerHTML =
+          `<p class="note-box">Results not published yet. See <code>benchmarks/results/comparison/</code>.</p>`;
+        document.getElementById("ft-body").innerHTML = "";
+        document.getElementById("protocol").textContent =
+          "Official test splits; full candidate label sets; two tracks (raw + OneSystem fine-tuned).";
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

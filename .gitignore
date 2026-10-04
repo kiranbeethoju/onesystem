@@ -1,5 +1,6 @@
 .venv/
 .venv-decide/
+.venv-compare/
 __pycache__/
 *.py[cod]
 .pytest_cache/

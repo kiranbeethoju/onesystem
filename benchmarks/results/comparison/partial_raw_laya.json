@@ -1,0 +1,71 @@
+{
+  "track": "raw",
+  "systems": [
+    "laya"
+  ],
+  "results": {
+    "banking77": [
+      {
+        "system": "laya",
+        "track": "raw",
+        "n": 3080,
+        "n_labels": 77,
+        "accuracy": 0.3802,
+        "macro_f1": 0.3326,
+        "ece": 0.5279,
+        "nll": 9.5297,
+        "error_rate": 0.0,
+        "seconds": 401.2,
+        "latency": {
+          "n": 30,
+          "p50_ms": 101.72,
+          "p95_ms": 107.09,
+          "mean_ms": 102.46
+        },
+        "dataset": "banking77"
+      }
+    ],
+    "hwu64": [
+      {
+        "system": "laya",
+        "track": "raw",
+        "n": 1076,
+        "n_labels": 64,
+        "accuracy": 0.3522,
+        "macro_f1": 0.3048,
+        "ece": 0.306,
+        "nll": 3.6672,
+        "error_rate": 0.0,
+        "seconds": 92.0,
+        "latency": {
+          "n": 30,
+          "p50_ms": 85.03,
+          "p95_ms": 87.65,
+          "mean_ms": 85.04
+        },
+        "dataset": "hwu64"
+      }
+    ],
+    "clinc150": [
+      {
+        "system": "laya",
+        "track": "raw",
+        "n": 4500,
+        "n_labels": 150,
+        "accuracy": 0.5324,
+        "macro_f1": 0.5008,
+        "ece": 0.3395,
+        "nll": 4.3061,
+        "error_rate": 0.0,
+        "seconds": 960.2,
+        "latency": {
+          "n": 30,
+          "p50_ms": 210.86,
+          "p95_ms": 224.13,
+          "mean_ms": 211.72
+        },
+        "dataset": "clinc150"
+      }
+    ]
+  }
+}

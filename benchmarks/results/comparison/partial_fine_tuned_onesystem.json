@@ -1,0 +1,71 @@
+{
+  "track": "fine_tuned",
+  "systems": [
+    "onesystem"
+  ],
+  "results": {
+    "banking77": [
+      {
+        "system": "onesystem-banking77",
+        "track": "fine_tuned",
+        "n": 3080,
+        "n_labels": 77,
+        "accuracy": 0.9403,
+        "macro_f1": 0.9401,
+        "ece": 0.012,
+        "nll": 0.2424,
+        "error_rate": 0.0,
+        "seconds": 89.6,
+        "latency": {
+          "n": 30,
+          "p50_ms": 31.48,
+          "p95_ms": 37.58,
+          "mean_ms": 29.37
+        },
+        "dataset": "banking77"
+      }
+    ],
+    "clinc150": [
+      {
+        "system": "onesystem-clinc150",
+        "track": "fine_tuned",
+        "n": 4500,
+        "n_labels": 150,
+        "accuracy": 0.9758,
+        "macro_f1": 0.9757,
+        "ece": 0.0027,
+        "nll": 0.1244,
+        "error_rate": 0.0,
+        "seconds": 131.0,
+        "latency": {
+          "n": 30,
+          "p50_ms": 30.68,
+          "p95_ms": 36.48,
+          "mean_ms": 30.02
+        },
+        "dataset": "clinc150"
+      }
+    ],
+    "hwu64": [
+      {
+        "system": "onesystem-hwu64",
+        "track": "fine_tuned",
+        "n": 1076,
+        "n_labels": 64,
+        "accuracy": 0.9368,
+        "macro_f1": 0.9338,
+        "ece": 0.0201,
+        "nll": 0.2745,
+        "error_rate": 0.0,
+        "seconds": 29.7,
+        "latency": {
+          "n": 30,
+          "p50_ms": 21.7,
+          "p95_ms": 24.76,
+          "mean_ms": 20.43
+        },
+        "dataset": "hwu64"
+      }
+    ]
+  }
+}
