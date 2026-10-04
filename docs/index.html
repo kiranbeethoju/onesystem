@@ -53,18 +53,63 @@
     <section id="pipeline">
       <h2>In front of the LLM — not instead of it</h2>
       <p class="section-lede">Simple requests get a macro. Complex or abstained requests get a chat / reasoning model.</p>
-      <pre class="arch"><code>Incoming request
-        │
-        ▼
-    OneSystem          ← label · probabilities · calibrated confidence · abstain
-        │
- ┌──────┴──────────┐
- │                 │
-Simple           Complex / abstain
- │                 │
-Macro            LLM
- │                 │
-Done             Plan · tools · draft</code></pre>
+
+      <div class="flow" aria-label="OneSystem routing workflow">
+        <div class="flow-step">
+          <span class="flow-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 4h16v12H4z"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>
+          </span>
+          <div>
+            <strong>Incoming request</strong>
+            <em>Ticket, note, or chat turn</em>
+          </div>
+        </div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step flow-step-accent">
+          <span class="flow-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+          </span>
+          <div>
+            <strong>OneSystem</strong>
+            <em>label · probabilities · calibrated confidence · abstain</em>
+          </div>
+        </div>
+        <div class="flow-split">
+          <div class="flow-branch">
+            <span class="flow-branch-label">Simple</span>
+            <div class="flow-step">
+              <span class="flow-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
+              </span>
+              <div><strong>Macro / workflow</strong><em>Refund, route, freeze…</em></div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+            <div class="flow-step flow-step-done">
+              <span class="flow-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20 6 9 17l-5-5"/></svg>
+              </span>
+              <div><strong>Done</strong><em>No LLM call</em></div>
+            </div>
+          </div>
+          <div class="flow-branch">
+            <span class="flow-branch-label">Complex / abstain</span>
+            <div class="flow-step">
+              <span class="flow-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2a7 7 0 0 1 7 7c0 2.5-1.2 4.2-3 5.5V17H8v-2.5C6.2 13.2 5 11.5 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/></svg>
+              </span>
+              <div><strong>LLM</strong><em>Reason · tools · draft</em></div>
+            </div>
+            <div class="flow-arrow" aria-hidden="true"></div>
+            <div class="flow-step">
+              <span class="flow-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 4h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg>
+              </span>
+              <div><strong>Plan · tools · draft</strong><em>Open-ended work</em></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="type-grid">
         <article>
           <h3>OneSystem wins</h3>
@@ -535,14 +580,58 @@ else:
 
     <section id="built">
       <h2>How it is built</h2>
-      <pre class="arch"><code>text  --"{task}: {text}"-->  encoder → mean → proj → normalize ─┐
-                                                                cosine × scale / T → softmax | sigmoid
-label --"{task}: {label}"--> encoder → mean → proj → normalize ─┘</code></pre>
+      <p class="section-lede">Task-conditioned bi-encoder: text and labels share one projection, then scored by scaled cosine.</p>
+
+      <div class="arch-flow" aria-label="OneSystem model architecture">
+        <div class="arch-row">
+          <div class="arch-lane">
+            <span class="arch-lane-tag">Text</span>
+            <div class="arch-node">
+              <span class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span>
+              <span><code>{task}: {text}</code></span>
+            </div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>encoder</span></div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>mean</span></div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>proj</span></div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>normalize</span></div>
+          </div>
+          <div class="arch-lane">
+            <span class="arch-lane-tag">Label</span>
+            <div class="arch-node">
+              <span class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M20.6 13.4 11 3H4v7l9.6 9.6a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8z"/><circle cx="7.5" cy="7.5" r="1.2"/></svg></span>
+              <span><code>{task}: {label}</code></span>
+            </div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>encoder</span></div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>mean</span></div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>proj</span></div>
+            <span class="arch-chevron" aria-hidden="true"></span>
+            <div class="arch-node"><span>normalize</span></div>
+          </div>
+        </div>
+        <div class="arch-merge">
+          <span class="arch-merge-lines" aria-hidden="true"></span>
+          <div class="arch-node arch-node-score">
+            <span class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m6 18 6-12 6 12"/><path d="M8 14h8"/></svg></span>
+            <div>
+              <strong>cosine × scale / T</strong>
+              <em>softmax · single-label &nbsp;|&nbsp; sigmoid · multi-label</em>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <ul class="bullets">
-        <li>110M encoder initialised from <code>BAAI/bge-base-en-v1.5</code>, then fine-tuned; weights saved inside OneSystem.</li>
+        <li>Encoder initialised from <code>Alibaba-NLP/gte-base-en-v1.5</code> (8192 ctx), then fine-tuned; full weights saved inside OneSystem.</li>
         <li>Shared identity-initialised projection so zero-shot already uses encoder geometry.</li>
         <li>Data: public <code>fastino/fast-decisions</code> development split — 70% train / 10% calib / 20% eval per domain.</li>
-        <li>No <code>gliner2</code>, no PEFT adapter at inference.</li>
+        <li>No third-party decision checkpoint and no PEFT adapter at inference.</li>
       </ul>
     </section>
   </main>
@@ -556,7 +645,7 @@ label --"{task}: {label}"--> encoder → mean → proj → normalize ─┘</cod
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("in"); });
     }, { threshold: 0.12 });
-    document.querySelectorAll(".recipe, .type-grid article, .strip, .arch").forEach((el) => observer.observe(el));
+    document.querySelectorAll(".recipe, .type-grid article, .strip, .flow, .arch-flow").forEach((el) => observer.observe(el));
   </script>
 </body>
 </html>
