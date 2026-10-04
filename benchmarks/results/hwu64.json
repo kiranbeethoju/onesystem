@@ -1,0 +1,80 @@
+{
+  "dataset": "HWU64",
+  "source": "https://github.com/jianguoz/Few-Shot-Intent-Detection/tree/main/Datasets/HWU64",
+  "task": "intent",
+  "n_labels": 64,
+  "label_wording": "raw intent strings from seq.in/label (frozen)",
+  "train_rows": 8954,
+  "test_rows": 1076,
+  "protocol": "Every test example sees all 64 candidate labels. Official test never used for training or calibration.",
+  "onesystem_version": "0.3.0",
+  "device": "mps",
+  "current_checkpoint": {
+    "n": 1076,
+    "n_labels": 64,
+    "accuracy": 0.645,
+    "macro_f1": 0.5976,
+    "ece": 0.4091,
+    "nll": 2.0467,
+    "coverage": 1.0,
+    "accepted_accuracy": 0.645,
+    "abstain_rate": 0.0,
+    "min_confidence": null,
+    "latency": {
+      "n": 50,
+      "p50_ms": 9.31,
+      "p95_ms": 11.3,
+      "mean_ms": 9.5
+    },
+    "seconds": 2.5
+  },
+  "finetune_split": {
+    "train_rows": 8048,
+    "calib_rows": 906,
+    "calib_ratio": 0.1,
+    "seed": 42
+  },
+  "domain_adapted": {
+    "n": 1076,
+    "n_labels": 64,
+    "accuracy": 0.9368,
+    "macro_f1": 0.9338,
+    "ece": 0.0201,
+    "nll": 0.2745,
+    "coverage": 1.0,
+    "accepted_accuracy": 0.9368,
+    "abstain_rate": 0.0,
+    "min_confidence": null,
+    "latency": {
+      "n": 50,
+      "p50_ms": 11.5,
+      "p95_ms": 14.9,
+      "mean_ms": 11.82
+    },
+    "seconds": 3.0,
+    "temperature": 1.9000000000000001,
+    "calib_nll": 0.2625,
+    "train_run": {
+      "steps": 4024,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 0.4646
+        },
+        {
+          "epoch": 2,
+          "loss": 0.1511
+        },
+        {
+          "epoch": 3,
+          "loss": 0.0426
+        },
+        {
+          "epoch": 4,
+          "loss": 0.0093
+        }
+      ],
+      "seconds": 2346.4
+    }
+  }
+}

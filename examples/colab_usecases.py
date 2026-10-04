@@ -183,3 +183,20 @@ batch = model.classify_batch(
 )
 print("\n7) Batch")
 print(json.dumps(batch, indent=2))
+
+# %% [markdown]
+# ## Domain-specific model
+# Fine-tune when you have labelled data for a fixed taxonomy
+# (see https://kiranbeethoju.github.io/onesystem/#domain-adapt).
+#
+# ```bash
+# python -m onesystem.domain_adapt \
+#   --train data/my_domain/train.jsonl \
+#   --output models/onesystem-mydomain \
+#   --name OneSystem-MyDomain --epochs 4
+# ```
+#
+# ```python
+# domain = OneSystem.load("models/onesystem-mydomain")  # or path on Colab
+# domain.classify("…", {"intent": ["refund", "status", "other"]})
+# ```

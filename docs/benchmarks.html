@@ -29,12 +29,14 @@
   <header class="hero">
     <p class="brand">OneSystem</p>
     <h1>Public benchmarks</h1>
-    <p class="lede">BANKING77 and CLINC150 measure intent choice and abstention. Numbers below are on each dataset’s official test split — not a single universal score.</p>
+    <p class="lede">BANKING77, CLINC150, HWU64, and GoEmotions. Numbers below are on each dataset’s official test split — not a single universal score.</p>
     <div class="cta">
       <a class="btn primary" href="index.html">Cookbook</a>
       <a class="btn" href="https://github.com/kiranbeethoju/onesystem">GitHub</a>
-      <a class="btn" href="data/banking77.json">BANKING77 JSON</a>
-      <a class="btn" href="data/clinc150.json">CLINC150 JSON</a>
+      <a class="btn" href="data/banking77.json">BANKING77</a>
+      <a class="btn" href="data/clinc150.json">CLINC150</a>
+      <a class="btn" href="data/hwu64.json">HWU64</a>
+      <a class="btn" href="data/goemotions.json">GoEmotions</a>
     </div>
   </header>
 
@@ -42,11 +44,12 @@
     <section>
       <h2>Protocol</h2>
       <p class="note-box">
-        Every example sees the <strong>full</strong> candidate label set (77 or 150).
+        Every example sees the <strong>full</strong> candidate label set for that dataset.
         Label wording is frozen to the publishers’ category strings.
         Calibration / threshold selection never touches the official test set.
         Two columns: <strong>current checkpoint</strong> (OneSystem v0.3.0 as published) and
         <strong>domain-adapted</strong> (fine-tuned on that dataset’s train split).
+        How to train your own: see <a href="index.html#domain-adapt">Domain-specific model</a> in the cookbook.
       </p>
     </section>
 
@@ -62,13 +65,25 @@
       <div id="clinc150-body"><p class="note-box">Loading results…</p></div>
     </section>
 
+    <section id="hwu64">
+      <h2>HWU64</h2>
+      <p class="section-lede">Home-assistant style intents · 64 labels. <a href="https://github.com/jianguoz/Few-Shot-Intent-Detection/tree/main/Datasets/HWU64">source</a></p>
+      <div id="hwu64-body"><p class="note-box">Loading results…</p></div>
+    </section>
+
+    <section id="goemotions">
+      <h2>GoEmotions</h2>
+      <p class="section-lede">Multi-label emotion tagging · 27 emotions (neutral-only rows skipped). <a href="https://github.com/google-research/google-research/tree/master/goemotions">source</a></p>
+      <div id="goemotions-body"><p class="note-box">Loading results…</p></div>
+    </section>
+
     <section>
       <h2>What these numbers do <em>not</em> claim</h2>
       <ul class="bullets">
         <li>They are not “exact performance” of OneSystem on every task — only on these datasets.</li>
         <li>They do not measure LLM-calls-avoided end-to-end quality; that needs a workflow eval.</li>
         <li>They are short-utterance benchmarks; the advertised 8,192-token window is a separate stress test.</li>
-        <li>GoEmotions (multi-label) is next on the roadmap.</li>
+        <li>Domain-adapted scores require fine-tuning on that dataset’s train split — see the cookbook.</li>
       </ul>
     </section>
   </main>
@@ -103,6 +118,56 @@
         <p class="note-box">Device: ${report.device || "—"}. Fine-tune split: ${
           report.finetune_split
             ? report.finetune_split.train_rows + " train / " + report.finetune_split.calib_rows + " calib from official train; test untouched."
+            : "—"
+        }</p>`;
+    }
+
+    function intentTable(report) {
+      const cur = report.current_checkpoint || {};
+      const ft = report.domain_adapted || {};
+      return `
+        <table class="bench">
+          <thead><tr><th>Metric</th><th>Current v0.3.0</th><th>Domain-adapted</th></tr></thead>
+          <tbody>
+            <tr><td>Accuracy</td><td class="num">${pct(cur.accuracy)}</td><td class="num"><span class="num-win">${pct(ft.accuracy)}</span></td></tr>
+            <tr><td>Macro-F1</td><td class="num">${pct(cur.macro_f1)}</td><td class="num">${pct(ft.macro_f1)}</td></tr>
+            <tr><td>ECE</td><td class="num">${num(cur.ece)}</td><td class="num">${num(ft.ece)}</td></tr>
+            <tr><td>NLL</td><td class="num">${num(cur.nll)}</td><td class="num">${num(ft.nll)}</td></tr>
+            <tr><td>Latency p50 / p95 (warm)</td>
+              <td class="num">${ms(cur.latency && cur.latency.p50_ms)} / ${ms(cur.latency && cur.latency.p95_ms)}</td>
+              <td class="num">${ms(ft.latency && ft.latency.p50_ms)} / ${ms(ft.latency && ft.latency.p95_ms)}</td></tr>
+            <tr><td>Eval wall time</td><td class="num">${cur.seconds != null ? cur.seconds + "s" : "—"}</td>
+              <td class="num">${ft.seconds != null ? ft.seconds + "s" : "—"}</td></tr>
+          </tbody>
+        </table>
+        <p class="note-box">Device: ${report.device || "—"}. Fine-tune split: ${
+          report.finetune_split
+            ? report.finetune_split.train_rows + " train / " + report.finetune_split.calib_rows + " calib; test untouched."
+            : "—"
+        }</p>`;
+    }
+
+    function multiTable(report) {
+      const cur = report.current_checkpoint || {};
+      const ft = report.domain_adapted || {};
+      return `
+        <table class="bench">
+          <thead><tr><th>Metric</th><th>Current v0.3.0</th><th>Domain-adapted</th></tr></thead>
+          <tbody>
+            <tr><td>Macro-F1</td><td class="num">${pct(cur.macro_f1)}</td><td class="num"><span class="num-win">${pct(ft.macro_f1)}</span></td></tr>
+            <tr><td>Micro-F1</td><td class="num">${pct(cur.micro_f1)}</td><td class="num">${pct(ft.micro_f1)}</td></tr>
+            <tr><td>Subset accuracy</td><td class="num">${pct(cur.subset_accuracy)}</td><td class="num">${pct(ft.subset_accuracy)}</td></tr>
+            <tr><td>Decision threshold</td><td class="num">${num(cur.threshold ?? report.threshold)}</td><td class="num">${num(ft.threshold ?? report.threshold)}</td></tr>
+            <tr><td>Latency p50 / p95 (warm)</td>
+              <td class="num">${ms(cur.latency && cur.latency.p50_ms)} / ${ms(cur.latency && cur.latency.p95_ms)}</td>
+              <td class="num">${ms(ft.latency && ft.latency.p50_ms)} / ${ms(ft.latency && ft.latency.p95_ms)}</td></tr>
+            <tr><td>Eval wall time</td><td class="num">${cur.seconds != null ? cur.seconds + "s" : "—"}</td>
+              <td class="num">${ft.seconds != null ? ft.seconds + "s" : "—"}</td></tr>
+          </tbody>
+        </table>
+        <p class="note-box">Device: ${report.device || "—"}. Multi-label; neutral-only rows skipped. Fine-tune: ${
+          report.finetune_split
+            ? report.finetune_split.train_rows + " train / " + report.finetune_split.calib_rows + " calib; test untouched."
             : "—"
         }</p>`;
     }
@@ -157,6 +222,26 @@
       } catch (e) {
         document.getElementById("clinc150-body").innerHTML =
           `<p class="note-box">Results not in this build yet. See <code>benchmarks/results/clinc150.json</code> after <code>python benchmarks/run_clinc150.py</code>.</p>`;
+      }
+      try {
+        const h = await fetch("data/hwu64.json").then((r) => {
+          if (!r.ok) throw new Error("hwu64 missing");
+          return r.json();
+        });
+        document.getElementById("hwu64-body").innerHTML = intentTable(h);
+      } catch (e) {
+        document.getElementById("hwu64-body").innerHTML =
+          `<p class="note-box">Results not in this build yet. Run <code>python benchmarks/run_hwu64.py</code>.</p>`;
+      }
+      try {
+        const g = await fetch("data/goemotions.json").then((r) => {
+          if (!r.ok) throw new Error("goemotions missing");
+          return r.json();
+        });
+        document.getElementById("goemotions-body").innerHTML = multiTable(g);
+      } catch (e) {
+        document.getElementById("goemotions-body").innerHTML =
+          `<p class="note-box">Results not in this build yet. Run <code>python benchmarks/run_goemotions.py</code>.</p>`;
       }
     }
     load();

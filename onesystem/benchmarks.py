@@ -294,6 +294,97 @@ def choose_threshold(
     }
 
 
+def evaluate_multilabel(
+    model,
+    rows: Sequence[Dict],
+    labels: Sequence[str],
+    task: str = "emotion",
+    text_key: str = "text",
+    label_key: str = "labels",
+    threshold: float = 0.5,
+    measure_latency: bool = True,
+) -> Dict:
+    """Score multi-label classification (e.g. GoEmotions)."""
+    tasks = {task: {"labels": list(labels), "multi_label": True, "threshold": threshold}}
+    tp = fp = fn = 0
+    subset_hits = 0
+    label_tp = Counter()
+    label_fp = Counter()
+    label_fn = Counter()
+    batch_size = 32
+    texts = [row[text_key] for row in rows]
+    golds = [list(row[label_key]) for row in rows]
+    for start in range(0, len(rows), batch_size):
+        answers = model.classify_batch(texts[start:start + batch_size], tasks)
+        for gold, answer in zip(golds[start:start + batch_size], answers):
+            pred = set(str(x) for x in (answer[task].get("labels") or []))
+            truth = set(str(x) for x in gold)
+            subset_hits += int(pred == truth)
+            tp += len(pred & truth)
+            fp += len(pred - truth)
+            fn += len(truth - pred)
+            for lab in labels:
+                in_p = lab in pred
+                in_t = lab in truth
+                if in_p and in_t:
+                    label_tp[lab] += 1
+                elif in_p:
+                    label_fp[lab] += 1
+                elif in_t:
+                    label_fn[lab] += 1
+    prec = tp / (tp + fp) if tp + fp else 0.0
+    rec = tp / (tp + fn) if tp + fn else 0.0
+    micro_f1 = 0.0 if prec + rec == 0 else 2 * prec * rec / (prec + rec)
+    macro_scores = []
+    for lab in labels:
+        p = label_tp[lab] / (label_tp[lab] + label_fp[lab]) if (label_tp[lab] + label_fp[lab]) else 0.0
+        r = label_tp[lab] / (label_tp[lab] + label_fn[lab]) if (label_tp[lab] + label_fn[lab]) else 0.0
+        macro_scores.append(0.0 if p + r == 0 else 2 * p * r / (p + r))
+    result = {
+        "n": len(rows),
+        "n_labels": len(labels),
+        "threshold": threshold,
+        "subset_accuracy": round(subset_hits / len(rows), 4) if rows else 0.0,
+        "micro_f1": round(micro_f1, 4),
+        "macro_f1": round(sum(macro_scores) / len(macro_scores), 4) if macro_scores else 0.0,
+    }
+    if measure_latency and rows:
+        for text in texts[: min(5, len(texts))]:
+            model.classify(text, tasks)
+        times = []
+        for i in range(50):
+            t0 = time.perf_counter()
+            model.classify(texts[i % len(texts)], tasks)
+            times.append((time.perf_counter() - t0) * 1000.0)
+        times.sort()
+        result["latency"] = {
+            "n": 50,
+            "p50_ms": round(times[len(times) // 2], 2),
+            "p95_ms": round(times[max(0, int(math.ceil(0.95 * len(times)) - 1))], 2),
+            "mean_ms": round(sum(times) / len(times), 2),
+        }
+    return result
+
+
+def load_hwu64(train_path: Path, test_path: Path) -> Dict[str, List]:
+    """Load HWU64 seq.in / label line files (Few-Shot-Intent-Detection layout)."""
+
+    def read_pair(seq_path: Path, label_path: Path) -> List[Dict[str, str]]:
+        texts = seq_path.read_text(encoding="utf-8").splitlines()
+        labs = label_path.read_text(encoding="utf-8").splitlines()
+        rows = []
+        for text, lab in zip(texts, labs):
+            text, lab = text.strip(), lab.strip()
+            if text and lab:
+                rows.append({"text": text, "category": lab})
+        return rows
+
+    train = read_pair(train_path / "seq.in", train_path / "label")
+    test = read_pair(test_path / "seq.in", test_path / "label")
+    labels = sorted({r["category"] for r in train + test})
+    return {"train": train, "test": test, "labels": labels}
+
+
 def load_clinc150(path: Path) -> Dict[str, List[Dict[str, str]]]:
     raw = json.loads(path.read_text(encoding="utf-8"))
 

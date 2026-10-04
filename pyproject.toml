@@ -18,7 +18,7 @@ classifiers = [
 ]
 dependencies = [
     "torch>=2.1",
-    "transformers>=4.40",
+    "transformers>=4.49,<5",
     "safetensors>=0.4",
     "huggingface_hub>=0.20",
 ]
@@ -30,6 +30,7 @@ dev = ["pytest>=8", "flake8>=7"]
 onesystem = "onesystem.cli:main"
 onesystem-train = "onesystem.train:main"
 onesystem-eval = "onesystem.evaluate:main"
+onesystem-adapt = "onesystem.domain_adapt:main"
 
 [tool.setuptools.packages.find]
 include = ["onesystem*"]

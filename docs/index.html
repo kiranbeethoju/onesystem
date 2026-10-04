@@ -182,6 +182,57 @@ from onesystem.model import OneSystem
 model = OneSystem.load()  # downloads release weights if needed</code></pre>
     </section>
 
+    <section id="domain-adapt">
+      <h2>Domain-specific model</h2>
+      <p class="section-lede">
+        The public v0.3.0 checkpoint is general-purpose. When you have a <em>fixed</em> label taxonomy
+        (banking intents, emotions, triage codes), fine-tune a domain checkpoint — that is what
+        lifts BANKING77 from ~63% to ~94% and CLINC150 from ~73% to ~98%.
+      </p>
+
+      <article class="recipe" id="adapt-steps">
+        <header>
+          <p class="domain">Training</p>
+          <h3>Three steps</h3>
+        </header>
+        <pre class="code"><code># 1) Write labelled JSONL (same schema as training data)
+# train.jsonl — one row per document
+{
+  "input": "Please refund the duplicate charge.",
+  "output": {
+    "classifications": [{
+      "task": "intent",
+      "labels": ["refund", "status", "other"],
+      "true_label": ["refund"],
+      "multi_label": false
+    }]
+  }
+}
+
+# 2) Fine-tune (10% of --train is held out for temperature if --calib omitted)
+python -m onesystem.domain_adapt \
+  --train data/my_domain/train.jsonl \
+  --output models/onesystem-mydomain \
+  --name OneSystem-MyDomain \
+  --epochs 4 --batch-size 8
+
+# 3) Load the domain model instead of the general release
+from onesystem.model import OneSystem
+model = OneSystem.load("models/onesystem-mydomain")
+model.classify(
+    "I was charged twice — reverse it.",
+    {"intent": ["refund", "status", "other"]},
+)</code></pre>
+        <pre class="out"><code>Tips
+• Keep the official test set out of train and calib.
+• Short utterances: --max-text-len 512 is enough (cheaper).
+• Long tickets/notes: raise toward 8192 (GTE-base limit).
+• Multi-label heads: set "multi_label": true and put every gold tag in true_label.
+• CLI alias: onesystem-adapt … (same flags).
+• Public domain runs: python benchmarks/run_banking77.py | run_clinc150.py | run_hwu64.py | run_goemotions.py</code></pre>
+      </article>
+    </section>
+
     <section id="cookbook">
       <h2>Cookbook — code and real outputs</h2>
       <p class="section-lede">Outputs below were produced on CPU with an earlier build (schemas unchanged in v0.3.0). Clinical examples are not medical advice or a device.</p>

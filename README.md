@@ -4,7 +4,7 @@
 
 Pass a short document and the labels that are legal for a decision. OneSystem returns a typed answer, a probability table, and calibrated confidence in **one forward pass**. It does **not** generate text. It sits **in front of** chat / reasoning models so simple requests never pay for an LLM call.
 
-**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.3.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0) · **Cookbook:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/) · **Benchmarks:** [BANKING77 + CLINC150](https://kiranbeethoju.github.io/onesystem/benchmarks.html)
+**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.3.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0) · **Cookbook:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/) · **Benchmarks:** [BANKING77 · CLINC150 · HWU64 · GoEmotions](https://kiranbeethoju.github.io/onesystem/benchmarks.html)
 
 ---
 
@@ -107,9 +107,30 @@ Colab multi-use-case notebook: [`examples/colab_usecases.py`](examples/colab_use
 | Local holdout (fast-decisions) | Zero-shot **0.457** → fine-tuned **0.590** · ECE **0.057** · T **2.5** |
 | BANKING77 test (77-way) | Current **63.3%** → domain-adapted **94.0%** |
 | CLINC150 in-scope (150-way) | Current **73.0%** → domain-adapted **97.6%**; OOS recall **91.7%** (threshold from val) |
+| HWU64 test (64-way) | Current **64.5%** → domain-adapted **93.7%** |
+| GoEmotions (27-way multi-label) | See [benchmarks](https://kiranbeethoju.github.io/onesystem/benchmarks.html) |
 | Weights | ~550 MB `model.safetensors` + `encoder/` architecture code |
 
 Scores are dataset-specific — see [benchmarks](https://kiranbeethoju.github.io/onesystem/benchmarks.html). Prefer **2–16** labels per task in production schemas.
+
+### Domain-specific checkpoint
+
+When you have labelled data for a fixed taxonomy, fine-tune instead of relying on the general release:
+
+```bash
+python -m onesystem.domain_adapt \
+  --train data/my_domain/train.jsonl \
+  --output models/onesystem-mydomain \
+  --name OneSystem-MyDomain \
+  --epochs 4
+```
+
+```python
+from onesystem.model import OneSystem
+model = OneSystem.load("models/onesystem-mydomain")
+```
+
+Step-by-step + JSONL schema: [cookbook § Domain-specific model](https://kiranbeethoju.github.io/onesystem/#domain-adapt).
 
 ---
 
@@ -159,6 +180,8 @@ CLI: `onesystem "Stop the bot and get me a person." --task handoff --labels yes,
 | `onesystem/modeling.py` | Network + save/load |
 | `onesystem/hub.py` | Local dir or GitHub release download |
 | `onesystem/train.py` / `evaluate.py` | Train, calibrate, ECE |
+| `onesystem/domain_adapt.py` | Fine-tune a domain-specific checkpoint |
+| `benchmarks/` | BANKING77 / CLINC150 / HWU64 / GoEmotions |
 | `examples/colab_usecases.py` | Colab multi-use-case script |
 | `docs/` | GitHub Pages cookbook |
 | `models/onesystem` | Config, tokenizer, manifest (weights on the release) |
