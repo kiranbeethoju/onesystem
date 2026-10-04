@@ -108,7 +108,7 @@ Colab multi-use-case notebook: [`examples/colab_usecases.py`](examples/colab_use
 | BANKING77 test (77-way) | Current **63.3%** → domain-adapted **94.0%** |
 | CLINC150 in-scope (150-way) | Current **73.0%** → domain-adapted **97.6%**; OOS recall **91.7%** (threshold from val) |
 | HWU64 test (64-way) | Current **64.5%** → domain-adapted **93.7%** |
-| GoEmotions (27-way multi-label) | See [benchmarks](https://kiranbeethoju.github.io/onesystem/benchmarks.html) |
+| GoEmotions (27-way multi-label) | Macro-F1 **8.3%** → **61.0%** · micro-F1 **64.8%** |
 | Weights | ~550 MB `model.safetensors` + `encoder/` architecture code |
 
 Scores are dataset-specific — see [benchmarks](https://kiranbeethoju.github.io/onesystem/benchmarks.html). Prefer **2–16** labels per task in production schemas.

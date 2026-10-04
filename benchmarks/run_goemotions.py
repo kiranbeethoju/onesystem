@@ -197,10 +197,10 @@ def main() -> None:
         ft["calib_nll"] = manifest["calib_nll"]
         ft["train_run"] = manifest["train_run"]
         report["domain_adapted"] = ft
-        print(json.dumps(ft, indent=2), flush=True)
+        print(json.dumps(ft, indent=2, allow_nan=False), flush=True)
 
     path = OUT / "goemotions.json"
-    path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     print(f"wrote {path}", flush=True)
 
 

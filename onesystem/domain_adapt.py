@@ -163,6 +163,7 @@ def domain_adapt(
     temperature, calib_nll = fit_temperature(model, calib_records)
     network.config.temperature = temperature
     model.clear_cache()
+    calib_nll_out = None if calib_nll != calib_nll else round(float(calib_nll), 4)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     network.save(output_dir, tokenizer=tokenizer)
@@ -172,7 +173,7 @@ def domain_adapt(
         "model_type": "onesystem-domain",
         "base_encoder": encoder,
         "temperature": temperature,
-        "calib_nll": round(calib_nll, 4),
+        "calib_nll": calib_nll_out,
         "train_rows": len(train_records),
         "calib_rows": len(calib_records),
         "train_run": run,

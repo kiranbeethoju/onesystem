@@ -1,0 +1,65 @@
+{
+  "dataset": "GoEmotions",
+  "source": "https://github.com/google-research/google-research/tree/master/goemotions",
+  "task": "emotion",
+  "n_labels": 27,
+  "label_wording": "27 GoEmotions labels (neutral-only rows skipped; frozen names)",
+  "train_rows": 30587,
+  "calib_rows": 2000,
+  "test_rows": 3821,
+  "protocol": "Multi-label: every example sees all 27 emotion candidates. Official test untouched. Dev (capped) used only for temperature calibration.",
+  "onesystem_version": "0.3.0",
+  "device": "mps",
+  "threshold": 0.3,
+  "current_checkpoint": {
+    "n": 3821,
+    "n_labels": 27,
+    "threshold": 0.3,
+    "subset_accuracy": 0.0,
+    "micro_f1": 0.0844,
+    "macro_f1": 0.0827,
+    "latency": {
+      "n": 50,
+      "p50_ms": 9.35,
+      "p95_ms": 11.78,
+      "mean_ms": 9.69
+    },
+    "seconds": 13.2
+  },
+  "finetune_split": {
+    "train_rows": 30587,
+    "calib_rows": 2000,
+    "calib_source": "official_dev"
+  },
+  "domain_adapted": {
+    "n": 3821,
+    "n_labels": 27,
+    "threshold": 0.3,
+    "subset_accuracy": 0.4672,
+    "micro_f1": 0.6482,
+    "macro_f1": 0.6095,
+    "latency": {
+      "n": 50,
+      "p50_ms": 11.77,
+      "p95_ms": 17.89,
+      "mean_ms": 11.91
+    },
+    "seconds": 14.1,
+    "temperature": 1.0,
+    "calib_nll": null,
+    "train_run": {
+      "steps": 7648,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 0.1921
+        },
+        {
+          "epoch": 2,
+          "loss": 0.0675
+        }
+      ],
+      "seconds": 3521.7
+    }
+  }
+}
