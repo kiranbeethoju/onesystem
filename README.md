@@ -104,10 +104,12 @@ Colab multi-use-case notebook: [`examples/colab_usecases.py`](examples/colab_use
 | Encoder init | [`Alibaba-NLP/gte-base-en-v1.5`](https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5) (Apache 2.0, **8192** ctx) |
 | Text context | **8192 tokens** (~6k–7k English words), incl. task prefix |
 | Label context | **128 tokens** |
-| Local holdout | Zero-shot **0.457** → fine-tuned **0.590** · ECE **0.057** · T **2.5** |
+| Local holdout (fast-decisions) | Zero-shot **0.457** → fine-tuned **0.590** · ECE **0.057** · T **2.5** |
+| BANKING77 test (77-way) | Current **63.3%** → domain-adapted **94.0%** |
+| CLINC150 in-scope (150-way) | Current **73.0%** → domain-adapted **97.6%**; OOS recall **91.7%** (threshold from val) |
 | Weights | ~550 MB `model.safetensors` + `encoder/` architecture code |
 
-Holdout is a cut of the public development split — **not** Fastino’s unpublished test benchmark. Prefer **2–16** labels per task.
+Scores are dataset-specific — see [benchmarks](https://kiranbeethoju.github.io/onesystem/benchmarks.html). Prefer **2–16** labels per task in production schemas.
 
 ---
 
