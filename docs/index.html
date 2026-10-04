@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>OneSystem — System‑1 decision engine for LLM pipelines</title>
-  <meta name="description" content="Fast typed decisions before expensive AI reasoning. Calibrated confidence, abstain, one forward pass. Complements JEV, Laya, and LLMs — does not replace them." />
+  <meta name="description" content="Fast typed decisions before expensive AI reasoning. Calibrated confidence, abstain, one forward pass. Complements LLMs — does not replace them." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
@@ -16,7 +16,7 @@
   <header class="hero">
     <p class="brand">OneSystem</p>
     <h1>Fast typed decisions before expensive AI reasoning</h1>
-    <p class="lede">A System‑1 decision engine for LLM pipelines. Route, filter, and abstain in one forward pass — then call JEV, Laya, or GPT only when the request is complex. Not a chat model. Not a competitor to reasoning systems.</p>
+    <p class="lede">A System‑1 decision engine for LLM pipelines. Route, filter, and abstain in one forward pass — then call a chat or reasoning model only when the request is complex. Not a chat model.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/kiranbeethoju/onesystem">GitHub</a>
       <a class="btn" href="https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0">v0.3.0 weights (8k)</a>
@@ -50,8 +50,8 @@
     </section>
 
     <section id="pipeline">
-      <h2>In front of JEV / Laya / GPT — not instead of them</h2>
-      <p class="section-lede">Simple requests get a macro. Complex or abstained requests get a reasoning model.</p>
+      <h2>In front of the LLM — not instead of it</h2>
+      <p class="section-lede">Simple requests get a macro. Complex or abstained requests get a chat / reasoning model.</p>
       <pre class="arch"><code>Incoming request
         │
         ▼
@@ -61,16 +61,16 @@
  │                 │
 Simple           Complex / abstain
  │                 │
-Macro            JEV · Laya · LLM
+Macro            LLM
  │                 │
 Done             Plan · tools · draft</code></pre>
       <div class="type-grid">
         <article>
           <h3>OneSystem wins</h3>
-          <p>Fixed schema, &lt;50&nbsp;ms class of latency, native probabilities, enterprise routing, human-abstain without prompt hacks.</p>
+          <p>Fixed schema, low latency, native probabilities, enterprise routing, human-abstain without prompt hacks.</p>
         </article>
         <article>
-          <h3>Reasoning models win</h3>
+          <h3>LLMs win</h3>
           <p>Multi-step policy, memory, tool calls, drafting email — “check eligibility and write the appeal.” Don’t force that through a classifier.</p>
         </article>
       </div>
