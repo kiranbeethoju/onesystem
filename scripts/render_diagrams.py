@@ -74,7 +74,7 @@ def render_pipeline(path: Path) -> None:
     ax.axis("off")
     ax.set_title(
         "In front of the LLM — not instead of it",
-        fontsize=15, fontweight="600", color=INK, pad=10, fontfamily="sans-serif",
+        fontsize=15, fontweight="bold", color=INK, pad=10, fontfamily="sans-serif",
     )
     ax.text(
         5, 9.45,
@@ -129,7 +129,7 @@ def render_architecture(path: Path) -> None:
     ax.axis("off")
     ax.set_title(
         "How it is built — task-conditioned bi-encoder",
-        fontsize=15, fontweight="600", color=INK, pad=8, fontfamily="sans-serif",
+        fontsize=15, fontweight="bold", color=INK, pad=8, fontfamily="sans-serif",
     )
 
     steps = ["{task}: …", "encoder", "mean", "proj", "normalize"]
