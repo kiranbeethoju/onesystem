@@ -15,6 +15,9 @@ data/*.lengths.json
 output/
 models/onesystem-banking77/
 models/onesystem-clinc150/
+models/onesystem-hwu64/
+models/onesystem-goemotions/
+models/onesystem-*/
 .DS_Store
 
 # Weights are published as release assets, not committed.

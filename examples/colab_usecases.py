@@ -11,12 +11,22 @@
 # %cd onesystem
 # !pip install -q -e .
 
-# %% cell 2 — load
+# %% cell 2 — load (pick a domain)
 from onesystem.model import OneSystem
 import json
+import os
 
-model = OneSystem.load(device="cuda")  # use "cpu" if no GPU
-print(model.name, "temp=", model.network.config.temperature,
+# Paths after local fine-tunes (benchmarks/run_*.py). General release = None.
+MODELS = {
+    "general": None,  # downloads v0.3.0 release
+    "banking77": "models/onesystem-banking77",
+    "clinc150": "models/onesystem-clinc150",
+    "hwu64": "models/onesystem-hwu64",
+    "goemotions": "models/onesystem-goemotions",
+}
+DOMAIN = "general"  # change to banking77 / clinc150 / hwu64 / goemotions
+model = OneSystem.load(MODELS[DOMAIN], device="cuda")  # "cpu" / "mps" ok
+print(DOMAIN, model.name, "temp=", model.network.config.temperature,
       "max_text=", model.network.config.max_text_len)
 
 
@@ -184,19 +194,52 @@ batch = model.classify_batch(
 print("\n7) Batch")
 print(json.dumps(batch, indent=2))
 
+# %% cell 10 — LLM fallback when abstain / error
+import urllib.request
+
+def call_llm(user_text: str, reason: str) -> str:
+    """OpenAI-compatible chat API. Set LLM_API_KEY in Colab secrets / env."""
+    url = os.environ.get("LLM_API_URL", "https://api.openai.com/v1/chat/completions")
+    key = os.environ.get("LLM_API_KEY")
+    if not key:
+        return f"[dry-run LLM] reason={reason} text={user_text[:120]}"
+    body = {
+        "model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
+        "messages": [
+            {"role": "system", "content": f"OneSystem could not resolve this ({reason}). Help the user."},
+            {"role": "user", "content": user_text},
+        ],
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.loads(resp.read().decode())["choices"][0]["message"]["content"]
+
+
+def handle(text, labels):
+    try:
+        intent = model.classify(text, {"intent": labels}, min_confidence=0.65)["intent"]
+    except Exception as exc:
+        return {"route": "llm", "reply": call_llm(text, f"error:{exc}")}
+    if intent.get("abstain") or intent.get("label") in {None, "other", "complex"}:
+        return {"route": "llm", "reply": call_llm(text, "abstain_or_complex"), "decision": intent}
+    return {"route": "macro", "action": f"macro:{intent['label']}", "decision": intent}
+
+
+print(handle(
+    "Rewrite our SLA and also refund the duplicate charge.",
+    ["refund_request", "order_status", "cancel_subscription", "other"],
+))
+
 # %% [markdown]
 # ## Domain-specific model
-# Fine-tune when you have labelled data for a fixed taxonomy
-# (see https://kiranbeethoju.github.io/onesystem/#domain-adapt).
+# https://kiranbeethoju.github.io/onesystem/#models · #domain-adapt · #llm-fallback
 #
 # ```bash
-# python -m onesystem.domain_adapt \
-#   --train data/my_domain/train.jsonl \
-#   --output models/onesystem-mydomain \
-#   --name OneSystem-MyDomain --epochs 4
-# ```
-#
-# ```python
-# domain = OneSystem.load("models/onesystem-mydomain")  # or path on Colab
-# domain.classify("…", {"intent": ["refund", "status", "other"]})
+# python -m onesystem.domain_adapt --train data/my_domain/train.jsonl \
+#   --output models/onesystem-mydomain --name OneSystem-MyDomain --epochs 4
 # ```

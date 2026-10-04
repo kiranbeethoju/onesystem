@@ -46,58 +46,96 @@ That is **routing**, not reasoning. An LLM is slower, costlier, and less determi
 
 ## 3. How it fits in a pipeline
 
-```
-Incoming request
-        │
-        ▼
-    OneSystem          ← typed labels + confidence + abstain
-        │
- ┌──────┴──────────┐
- │                 │
-Simple           Complex / abstain
- │                 │
-Macro / workflow   LLM
- │                 │
-Done             Reason · tools · draft
-```
+![OneSystem in front of the LLM — simple macros vs complex/abstain LLM path](assets/pipeline.png)
 
 **Simple** — *“I need a refund for the duplicate March charge.”* → refund macro, no LLM.  
-**Complex** — multi-step policy + draft email → OneSystem routes, then the LLM runs.
+**Complex / abstain** — multi-step policy, low confidence, or model error → your chat API.
+
+Regenerate diagrams: `python scripts/render_diagrams.py` (matplotlib).
 
 ---
 
-## 4. Thirty-second example
+## 4. Load a model (general or domain)
 
 ```bash
 git clone https://github.com/kiranbeethoju/onesystem.git
 cd onesystem && pip install -e .
 ```
 
+| Domain | Load | After training |
+|---|---|---|
+| **General v0.3.0** | `OneSystem.load()` | release download |
+| **BANKING77** | `OneSystem.load("models/onesystem-banking77")` | `python benchmarks/run_banking77.py` |
+| **CLINC150** | `OneSystem.load("models/onesystem-clinc150")` | `python benchmarks/run_clinc150.py` |
+| **HWU64** | `OneSystem.load("models/onesystem-hwu64")` | `python benchmarks/run_hwu64.py` |
+| **GoEmotions** | `OneSystem.load("models/onesystem-goemotions")` | `python benchmarks/run_goemotions.py` |
+| **Your taxonomy** | `OneSystem.load("models/onesystem-mydomain")` | `python -m onesystem.domain_adapt …` |
+
 ```python
 from onesystem.model import OneSystem
 
-model = OneSystem.load()  # local weights or GitHub release (~550 MB)
+# General release (multi-domain schemas)
+model = OneSystem.load()
 
-d = model.classify(
-    "Hi, we were billed twice for March. Please refund the duplicate today.",
-    {
-        "intent": ["refund_request", "order_status", "cancel_subscription", "other"],
-        "handoff": ["yes", "no"],
-    },
+# Or a domain checkpoint (example: banking)
+banking = OneSystem.load("models/onesystem-banking77")
+d = banking.classify(
+    "I want to transfer money to savings",
+    {"intent": ["transfer", "balance", "other"]},  # use the full frozen set in prod
     min_confidence=0.65,
 )
-
-if d["handoff"]["label"] == "yes" or d["intent"].get("abstain"):
-    route = "human_or_llm"
-else:
-    route = f"macro:{d['intent']['label']}"
 ```
 
-Colab multi-use-case notebook: [`examples/colab_usecases.py`](examples/colab_usecases.py) (paste into Colab cells).
+Cookbook with full configs: [Models](https://kiranbeethoju.github.io/onesystem/#models) · [Domain adapt](https://kiranbeethoju.github.io/onesystem/#domain-adapt)
 
 ---
 
-## 5. Performance, context, calibration
+## 5. When OneSystem fails — hit your LLM API
+
+Abstain, exception, or a complex label should call a **custom OpenAI-compatible** endpoint (OpenAI, Azure, vLLM, Groq, …).
+
+```python
+import json, os, urllib.request
+from onesystem.model import OneSystem
+
+model = OneSystem.load()  # or a domain path
+LLM_URL = os.environ.get("LLM_API_URL", "https://api.openai.com/v1/chat/completions")
+LLM_KEY = os.environ["LLM_API_KEY"]
+
+def call_llm(text: str, reason: str) -> str:
+    body = {
+        "model": os.environ.get("LLM_MODEL", "gpt-4o-mini"),
+        "messages": [
+            {"role": "system", "content": f"OneSystem could not resolve this ({reason}). Help the user."},
+            {"role": "user", "content": text},
+        ],
+    }
+    req = urllib.request.Request(
+        LLM_URL,
+        data=json.dumps(body).encode(),
+        headers={"Authorization": f"Bearer {LLM_KEY}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return json.loads(resp.read().decode())["choices"][0]["message"]["content"]
+
+def handle(text, labels):
+    try:
+        intent = model.classify(text, {"intent": labels}, min_confidence=0.65)["intent"]
+    except Exception as exc:
+        return {"route": "llm", "reply": call_llm(text, f"error:{exc}")}
+    if intent.get("abstain") or intent.get("label") in {None, "other", "complex"}:
+        return {"route": "llm", "reply": call_llm(text, "abstain_or_complex"), "decision": intent}
+    return {"route": "macro", "action": f"macro:{intent['label']}", "decision": intent}
+```
+
+Full pattern: [LLM fallback](https://kiranbeethoju.github.io/onesystem/#llm-fallback)
+
+Colab: [`examples/colab_usecases.py`](examples/colab_usecases.py)
+
+---
+
+## 6. Performance, context, calibration
 
 | Metric | v0.3.0 |
 |---|---|
@@ -113,9 +151,7 @@ Colab multi-use-case notebook: [`examples/colab_usecases.py`](examples/colab_use
 
 Scores are dataset-specific — see [benchmarks](https://kiranbeethoju.github.io/onesystem/benchmarks.html). Prefer **2–16** labels per task in production schemas.
 
-### Domain-specific checkpoint
-
-When you have labelled data for a fixed taxonomy, fine-tune instead of relying on the general release:
+### Train a domain checkpoint
 
 ```bash
 python -m onesystem.domain_adapt \
@@ -125,30 +161,19 @@ python -m onesystem.domain_adapt \
   --epochs 4
 ```
 
-```python
-from onesystem.model import OneSystem
-model = OneSystem.load("models/onesystem-mydomain")
-```
-
-Step-by-step + JSONL schema: [cookbook § Domain-specific model](https://kiranbeethoju.github.io/onesystem/#domain-adapt).
-
 ---
 
-## 6. How it is trained
+## 7. How it is trained
 
-```
-text  --"{task}: {text}"-->  encoder → mean → proj → normalize ─┐
-                                                                cosine × scale / T → softmax | sigmoid
-label --"{task}: {label}"--> encoder → mean → proj → normalize ─┘
-```
+![Task-conditioned bi-encoder architecture](assets/architecture.png)
 
 - Data: public [`fastino/fast-decisions`](https://huggingface.co/datasets/fastino/fast-decisions) development split — 70% train / 10% calib / 20% eval per domain.
 - Recipe: AdamW; **max_text_len=8192**, **max_label_len=128**; temperature on calib only.
-- Pure PyTorch + Transformers — `python -m onesystem.train` / `onesystem.evaluate`.
+- Pure PyTorch + Transformers (`transformers>=4.49,<5`) — `python -m onesystem.train` / `onesystem.evaluate`.
 
 ---
 
-## 7. Domain recipes
+## 8. Domain recipes
 
 Schemas are yours at inference. Full examples + JSON: [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/).
 
@@ -182,6 +207,8 @@ CLI: `onesystem "Stop the bot and get me a person." --task handoff --labels yes,
 | `onesystem/train.py` / `evaluate.py` | Train, calibrate, ECE |
 | `onesystem/domain_adapt.py` | Fine-tune a domain-specific checkpoint |
 | `benchmarks/` | BANKING77 / CLINC150 / HWU64 / GoEmotions |
+| `scripts/render_diagrams.py` | Pipeline + architecture PNGs |
+| `assets/` · `docs/assets/` | Diagram images for README / Pages |
 | `examples/colab_usecases.py` | Colab multi-use-case script |
 | `docs/` | GitHub Pages cookbook |
 | `models/onesystem` | Config, tokenizer, manifest (weights on the release) |
