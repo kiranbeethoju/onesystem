@@ -1,0 +1,87 @@
+{
+  "dataset": "BANKING77",
+  "license": "CC BY 4.0",
+  "source": "https://github.com/PolyAI-LDN/task-specific-datasets",
+  "task": "intent",
+  "n_labels": 77,
+  "label_wording": "raw category strings from the CSV (frozen)",
+  "train_rows": 10003,
+  "test_rows": 3080,
+  "protocol": "Every test example sees all 77 candidate labels. Official test set never used for training or calibration.",
+  "onesystem_version": "0.3.0",
+  "device": "mps",
+  "base_checkpoint": {
+    "source": "models/onesystem",
+    "max_text_len": 8192,
+    "temperature": 2.5000000000000004,
+    "encoder_name": "Alibaba-NLP/gte-base-en-v1.5"
+  },
+  "current_checkpoint": {
+    "n": 3080,
+    "n_labels": 77,
+    "accuracy": 0.6334,
+    "macro_f1": 0.626,
+    "ece": 0.3307,
+    "nll": 1.8456,
+    "coverage": 1.0,
+    "accepted_accuracy": 0.6334,
+    "abstain_rate": 0.0,
+    "min_confidence": null,
+    "latency": {
+      "n": 50,
+      "p50_ms": 9.91,
+      "p95_ms": 79.3,
+      "mean_ms": 16.44
+    },
+    "seconds": 11.4
+  },
+  "finetune_split": {
+    "train_rows": 9000,
+    "calib_rows": 1003,
+    "calib_ratio": 0.1,
+    "seed": 42
+  },
+  "domain_adapted": {
+    "n": 3080,
+    "n_labels": 77,
+    "accuracy": 0.9403,
+    "macro_f1": 0.9401,
+    "ece": 0.012,
+    "nll": 0.2424,
+    "coverage": 1.0,
+    "accepted_accuracy": 0.9403,
+    "abstain_rate": 0.0,
+    "min_confidence": null,
+    "latency": {
+      "n": 50,
+      "p50_ms": 12.48,
+      "p95_ms": 17.4,
+      "mean_ms": 12.24
+    },
+    "seconds": 12.5,
+    "temperature": 1.8,
+    "calib_nll": 0.2126,
+    "train_run": {
+      "steps": 4500,
+      "history": [
+        {
+          "epoch": 1,
+          "loss": 0.4955
+        },
+        {
+          "epoch": 2,
+          "loss": 0.1877
+        },
+        {
+          "epoch": 3,
+          "loss": 0.0733
+        },
+        {
+          "epoch": 4,
+          "loss": 0.0301
+        }
+      ],
+      "seconds": 3739.3
+    }
+  }
+}

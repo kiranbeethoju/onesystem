@@ -8,10 +8,13 @@ __pycache__/
 dist/
 build/
 data/raw/
+data/benchmarks/
 data/*.jsonl
 data/*.npy
 data/*.lengths.json
 output/
+models/onesystem-banking77/
+models/onesystem-clinc150/
 .DS_Store
 
 # Weights are published as release assets, not committed.

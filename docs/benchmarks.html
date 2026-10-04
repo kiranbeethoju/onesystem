@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OneSystem — Public benchmarks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    table.bench { width: 100%; border-collapse: collapse; margin: 1rem 0 2rem; font-size: 0.95rem; }
+    table.bench th, table.bench td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    table.bench th { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .num { font-variant-numeric: tabular-nums; }
+    .note-box { color: var(--muted); max-width: 42rem; }
+  </style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="hero">
+    <p class="brand">OneSystem</p>
+    <h1>Public benchmarks</h1>
+    <p class="lede">BANKING77 and CLINC150 measure intent choice and abstention. Numbers below are on each dataset’s official test split — not a single universal score.</p>
+    <div class="cta">
+      <a class="btn primary" href="index.html">Cookbook</a>
+      <a class="btn" href="https://github.com/kiranbeethoju/onesystem">GitHub</a>
+      <a class="btn" href="data/banking77.json">BANKING77 JSON</a>
+      <a class="btn" href="data/clinc150.json">CLINC150 JSON</a>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>Protocol</h2>
+      <p class="note-box">
+        Every example sees the <strong>full</strong> candidate label set (77 or 150).
+        Label wording is frozen to the publishers’ category strings.
+        Calibration / threshold selection never touches the official test set.
+        Two columns: <strong>current checkpoint</strong> (OneSystem v0.3.0 as published) and
+        <strong>domain-adapted</strong> (fine-tuned on that dataset’s train split).
+      </p>
+    </section>
+
+    <section id="banking77">
+      <h2>BANKING77</h2>
+      <p class="section-lede">Fine-grained banking intents. CC BY 4.0 · 3,080 test · 77 labels. <a href="https://github.com/PolyAI-LDN/task-specific-datasets">source</a></p>
+      <div id="banking77-body"><p class="note-box">Loading results…</p></div>
+    </section>
+
+    <section id="clinc150">
+      <h2>CLINC150</h2>
+      <p class="section-lede">150 in-scope intents + out-of-scope. 4,500 + 1,000 test. <a href="https://github.com/clinc/oos-eval">source</a></p>
+      <div id="clinc150-body"><p class="note-box">Loading results…</p></div>
+    </section>
+
+    <section>
+      <h2>What these numbers do <em>not</em> claim</h2>
+      <ul class="bullets">
+        <li>They are not “exact performance” of OneSystem on every task — only on these datasets.</li>
+        <li>They do not measure LLM-calls-avoided end-to-end quality; that needs a workflow eval.</li>
+        <li>They are short-utterance benchmarks; the advertised 8,192-token window is a separate stress test.</li>
+        <li>GoEmotions (multi-label) is next on the roadmap.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>OneSystem</strong> · <a href="index.html">Cookbook</a> · <a href="https://github.com/kiranbeethoju/onesystem">GitHub</a></p>
+  </footer>
+
+  <script>
+    const pct = (x) => (x == null ? "—" : (100 * x).toFixed(1) + "%");
+    const num = (x) => (x == null || Number.isNaN(x) ? "—" : Number(x).toFixed(3));
+    const ms = (x) => (x == null ? "—" : Number(x).toFixed(1) + " ms");
+
+    function bankingTable(report) {
+      const cur = report.current_checkpoint || {};
+      const ft = report.domain_adapted || {};
+      return `
+        <table class="bench">
+          <thead><tr><th>Metric</th><th>Current v0.3.0</th><th>Domain-adapted</th></tr></thead>
+          <tbody>
+            <tr><td>Accuracy</td><td class="num">${pct(cur.accuracy)}</td><td class="num">${pct(ft.accuracy)}</td></tr>
+            <tr><td>Macro-F1</td><td class="num">${pct(cur.macro_f1)}</td><td class="num">${pct(ft.macro_f1)}</td></tr>
+            <tr><td>ECE</td><td class="num">${num(cur.ece)}</td><td class="num">${num(ft.ece)}</td></tr>
+            <tr><td>NLL</td><td class="num">${num(cur.nll)}</td><td class="num">${num(ft.nll)}</td></tr>
+            <tr><td>Latency p50 / p95 (warm)</td>
+              <td class="num">${ms(cur.latency && cur.latency.p50_ms)} / ${ms(cur.latency && cur.latency.p95_ms)}</td>
+              <td class="num">${ms(ft.latency && ft.latency.p50_ms)} / ${ms(ft.latency && ft.latency.p95_ms)}</td></tr>
+            <tr><td>Eval wall time</td><td class="num">${cur.seconds != null ? cur.seconds + "s" : "—"}</td>
+              <td class="num">${ft.seconds != null ? ft.seconds + "s" : "—"}</td></tr>
+          </tbody>
+        </table>
+        <p class="note-box">Device: ${report.device || "—"}. Fine-tune split: ${
+          report.finetune_split
+            ? report.finetune_split.train_rows + " train / " + report.finetune_split.calib_rows + " calib from official train; test untouched."
+            : "—"
+        }</p>`;
+    }
+
+    function clincTable(report) {
+      const cur = report.current_checkpoint || {};
+      const ft = report.domain_adapted || {};
+      const cIn = cur.in_scope_forced || {};
+      const fIn = ft.in_scope_forced || {};
+      const cAbs = cur.test_with_abstention || {};
+      const fAbs = ft.test_with_abstention || {};
+      return `
+        <table class="bench">
+          <thead><tr><th>Metric</th><th>Current v0.3.0</th><th>Domain-adapted</th></tr></thead>
+          <tbody>
+            <tr><td>In-scope accuracy (forced)</td><td class="num">${pct(cIn.accuracy)}</td><td class="num">${pct(fIn.accuracy)}</td></tr>
+            <tr><td>In-scope macro-F1</td><td class="num">${pct(cIn.macro_f1)}</td><td class="num">${pct(fIn.macro_f1)}</td></tr>
+            <tr><td>ECE / NLL</td><td class="num">${num(cIn.ece)} / ${num(cIn.nll)}</td><td class="num">${num(fIn.ece)} / ${num(fIn.nll)}</td></tr>
+            <tr><td>Abstain threshold (from val)</td>
+              <td class="num">${(cur.threshold_selection && cur.threshold_selection.chosen) ?? "—"}</td>
+              <td class="num">${(ft.threshold_selection && ft.threshold_selection.chosen) ?? "—"}</td></tr>
+            <tr><td>OOS recall (reject unsupported)</td><td class="num">${pct(cAbs.oos_recall)}</td><td class="num">${pct(fAbs.oos_recall)}</td></tr>
+            <tr><td>In-scope rejection rate</td><td class="num">${pct(cAbs.in_scope_rejection_rate)}</td><td class="num">${pct(fAbs.in_scope_rejection_rate)}</td></tr>
+            <tr><td>Coverage / accepted accuracy</td>
+              <td class="num">${pct(cAbs.coverage)} / ${pct(cAbs.accepted_accuracy)}</td>
+              <td class="num">${pct(fAbs.coverage)} / ${pct(fAbs.accepted_accuracy)}</td></tr>
+            <tr><td>Latency p50 / p95</td>
+              <td class="num">${ms(cIn.latency && cIn.latency.p50_ms)} / ${ms(cIn.latency && cIn.latency.p95_ms)}</td>
+              <td class="num">${ms(fIn.latency && fIn.latency.p50_ms)} / ${ms(fIn.latency && fIn.latency.p95_ms)}</td></tr>
+          </tbody>
+        </table>
+        <p class="note-box">Threshold chosen on val + oos_val only. Official test / oos_test scored once.</p>`;
+    }
+
+    async function load() {
+      try {
+        const b = await fetch("data/banking77.json").then((r) => {
+          if (!r.ok) throw new Error("banking77 missing");
+          return r.json();
+        });
+        document.getElementById("banking77-body").innerHTML = bankingTable(b);
+      } catch (e) {
+        document.getElementById("banking77-body").innerHTML =
+          `<p class="note-box">Results not in this build yet. See <code>benchmarks/results/banking77.json</code> after <code>python benchmarks/run_banking77.py</code>.</p>`;
+      }
+      try {
+        const c = await fetch("data/clinc150.json").then((r) => {
+          if (!r.ok) throw new Error("clinc missing");
+          return r.json();
+        });
+        document.getElementById("clinc150-body").innerHTML = clincTable(c);
+      } catch (e) {
+        document.getElementById("clinc150-body").innerHTML =
+          `<p class="note-box">Results not in this build yet. See <code>benchmarks/results/clinc150.json</code> after <code>python benchmarks/run_clinc150.py</code>.</p>`;
+      }
+    }
+    load();
+  </script>
+</body>
+</html>

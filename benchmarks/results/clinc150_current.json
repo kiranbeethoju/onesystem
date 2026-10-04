@@ -1,0 +1,136 @@
+{
+  "clinc150": {
+    "dataset": "CLINC150",
+    "source": "https://github.com/clinc/oos-eval",
+    "task": "intent",
+    "n_labels": 150,
+    "label_wording": "raw intent strings from data_full.json (frozen)",
+    "splits": {
+      "train": 15000,
+      "val": 3000,
+      "test": 4500,
+      "oos_train": 100,
+      "oos_val": 100,
+      "oos_test": 1000
+    },
+    "protocol": "In-scope classification uses all 150 intents. Abstention threshold chosen on val + oos_val only; test + oos_test held out.",
+    "onesystem_version": "0.3.0",
+    "device": "mps",
+    "base_checkpoint": {
+      "source": "models/onesystem",
+      "max_text_len": 8192,
+      "temperature": 2.5000000000000004,
+      "encoder_name": "Alibaba-NLP/gte-base-en-v1.5"
+    },
+    "current_checkpoint": {
+      "in_scope_forced": {
+        "n": 4500,
+        "n_labels": 150,
+        "accuracy": 0.7296,
+        "macro_f1": 0.7069,
+        "ece": 0.4501,
+        "nll": 1.8931,
+        "coverage": 1.0,
+        "accepted_accuracy": 0.7296,
+        "abstain_rate": 0.0,
+        "min_confidence": null,
+        "latency": {
+          "n": 50,
+          "p50_ms": 10.12,
+          "p95_ms": 11.45,
+          "mean_ms": 10.18
+        },
+        "seconds": 9.1
+      },
+      "threshold_selection": {
+        "chosen": 0.65,
+        "validation_grid_summary": [
+          {
+            "min_confidence": 0.5,
+            "oos_recall": 0.99,
+            "in_scope_rejection_rate": 0.8147,
+            "coverage": 0.1853,
+            "accepted_accuracy": 0.9748
+          },
+          {
+            "min_confidence": 0.55,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 0.8493,
+            "coverage": 0.1507,
+            "accepted_accuracy": 0.9801
+          },
+          {
+            "min_confidence": 0.6,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 0.889,
+            "coverage": 0.111,
+            "accepted_accuracy": 0.991
+          },
+          {
+            "min_confidence": 0.65,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 0.921,
+            "coverage": 0.079,
+            "accepted_accuracy": 1.0
+          },
+          {
+            "min_confidence": 0.7,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 0.95,
+            "coverage": 0.05,
+            "accepted_accuracy": 1.0
+          },
+          {
+            "min_confidence": 0.75,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 0.9707,
+            "coverage": 0.0293,
+            "accepted_accuracy": 1.0
+          },
+          {
+            "min_confidence": 0.8,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 0.99,
+            "coverage": 0.01,
+            "accepted_accuracy": 1.0
+          },
+          {
+            "min_confidence": 0.85,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 0.9977,
+            "coverage": 0.0023,
+            "accepted_accuracy": 1.0
+          },
+          {
+            "min_confidence": 0.9,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 1.0,
+            "coverage": 0.0,
+            "accepted_accuracy": null
+          },
+          {
+            "min_confidence": 0.95,
+            "oos_recall": 1.0,
+            "in_scope_rejection_rate": 1.0,
+            "coverage": 0.0,
+            "accepted_accuracy": null
+          }
+        ]
+      },
+      "test_with_abstention": {
+        "min_confidence": 0.65,
+        "oos_n": 1000,
+        "oos_recall": 1.0,
+        "in_scope_n": 4500,
+        "in_scope_rejection_rate": 0.924,
+        "coverage": 0.076,
+        "accepted_accuracy": 0.9942
+      },
+      "in_scope_with_threshold": {
+        "coverage": 0.076,
+        "accepted_accuracy": 0.9942,
+        "abstain_rate": 0.924
+      }
+    }
+  }
+}
