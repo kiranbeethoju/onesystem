@@ -13,6 +13,14 @@
     table.bench th, table.bench td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
     table.bench th { font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
     .num { font-variant-numeric: tabular-nums; }
+    .num-win {
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(15, 110, 86, 0.1);
+      border-radius: 0.35rem;
+      padding: 0.15rem 0.45rem;
+      display: inline-block;
+    }
     .note-box { color: var(--muted); max-width: 42rem; }
   </style>
 </head>
@@ -81,7 +89,7 @@
         <table class="bench">
           <thead><tr><th>Metric</th><th>Current v0.3.0</th><th>Domain-adapted</th></tr></thead>
           <tbody>
-            <tr><td>Accuracy</td><td class="num">${pct(cur.accuracy)}</td><td class="num">${pct(ft.accuracy)}</td></tr>
+            <tr><td>Accuracy</td><td class="num">${pct(cur.accuracy)}</td><td class="num"><span class="num-win">${pct(ft.accuracy)}</span></td></tr>
             <tr><td>Macro-F1</td><td class="num">${pct(cur.macro_f1)}</td><td class="num">${pct(ft.macro_f1)}</td></tr>
             <tr><td>ECE</td><td class="num">${num(cur.ece)}</td><td class="num">${num(ft.ece)}</td></tr>
             <tr><td>NLL</td><td class="num">${num(cur.nll)}</td><td class="num">${num(ft.nll)}</td></tr>
@@ -110,7 +118,7 @@
         <table class="bench">
           <thead><tr><th>Metric</th><th>Current v0.3.0</th><th>Domain-adapted</th></tr></thead>
           <tbody>
-            <tr><td>In-scope accuracy (forced)</td><td class="num">${pct(cIn.accuracy)}</td><td class="num">${pct(fIn.accuracy)}</td></tr>
+            <tr><td>In-scope accuracy (forced)</td><td class="num">${pct(cIn.accuracy)}</td><td class="num"><span class="num-win">${pct(fIn.accuracy)}</span></td></tr>
             <tr><td>In-scope macro-F1</td><td class="num">${pct(cIn.macro_f1)}</td><td class="num">${pct(fIn.macro_f1)}</td></tr>
             <tr><td>ECE / NLL</td><td class="num">${num(cIn.ece)} / ${num(cIn.nll)}</td><td class="num">${num(fIn.ece)} / ${num(fIn.nll)}</td></tr>
             <tr><td>Abstain threshold (from val)</td>
