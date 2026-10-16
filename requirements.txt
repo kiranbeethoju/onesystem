@@ -1,0 +1,7 @@
+# Pin for offline / air-gapped installs (Python >= 3.10).
+# On a connected machine:  pip download -r requirements.txt -d wheelhouse/
+# On the isolated machine: pip install --no-index --find-links=wheelhouse -r requirements.txt
+torch>=2.1
+transformers>=4.49,<5
+safetensors>=0.4
+huggingface_hub>=0.20

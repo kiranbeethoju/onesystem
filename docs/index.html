@@ -22,8 +22,10 @@
       <a class="btn" href="https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0">v0.3.0 weights (8k)</a>
       <a class="btn" href="#pipeline">Pipeline</a>
       <a class="btn" href="#models">Models</a>
+      <a class="btn" href="#offline">Offline / air-gap</a>
       <a class="btn" href="#llm-fallback">LLM fallback</a>
       <a class="btn" href="#cookbook">Cookbook</a>
+      <a class="btn" href="#clinical-nlp">Clinical NLP</a>
       <a class="btn" href="benchmarks.html">Benchmarks</a>
       <a class="btn" href="comparison.html">vs Laya / OpenJev</a>
     </div>
@@ -289,6 +291,56 @@ Your own taxonomy:
       </article>
     </section>
 
+    <section id="offline">
+      <h2>Offline / air-gapped Linux — no pip from the internet</h2>
+      <p class="section-lede">
+        Download <a href="https://github.com/kiranbeethoju/onesystem/releases/download/v0.3.0/offline_bundle.zip"><strong>offline_bundle.zip</strong></a>
+        (full source + <code>models/onesystem</code> weights) on a connected machine, copy to the isolated host, unzip.
+        Also ship a <strong>wheelhouse</strong> of <code>requirements.txt</code> wheels if torch/transformers are not already installed.
+        You can skip <code>pip install -e .</code> and use <code>PYTHONPATH</code>.
+      </p>
+
+      <article class="recipe" id="offline-steps">
+        <header>
+          <p class="domain">Install</p>
+          <h3>Bundle on a connected host → run offline</h3>
+        </header>
+        <pre class="code"><code># Connected machine
+git clone --depth 1 --branch v0.3.0 https://github.com/kiranbeethoju/onesystem.git
+cd onesystem
+# Put release assets in models/onesystem/ (model.safetensors, tokenizer*, encoder/*)
+# Full file list: scripts/offline_bundle.md
+mkdir -p wheelhouse
+pip download -r requirements.txt -d wheelhouse/
+cd .. && tar -czf onesystem-offline.tgz onesystem/
+
+# Isolated machine (no internet)
+tar -xzf onesystem-offline.tgz && cd onesystem
+python3 -m venv .venv && source .venv/bin/activate
+pip install --no-index --find-links=wheelhouse -r requirements.txt
+
+# Option A: editable install
+pip install --no-index --find-links=wheelhouse -e .
+
+# Option B: no pip install of onesystem — PYTHONPATH only
+export PYTHONPATH="$PWD:$PYTHONPATH"
+
+# ALWAYS pass the local checkpoint on air-gap (never empty OneSystem.load())
+python -c "from onesystem.model import OneSystem; \
+ m=OneSystem.load('models/onesystem'); print(m.classify('Freeze my card.', {'intent':['freeze_card','other']}))"
+
+# Smoke-test all cookbook domains
+python examples/run_recipes.py --model models/onesystem --out /tmp/recipes.json</code></pre>
+        <pre class="out"><code>Rules:
+  ✓  OneSystem.load("models/onesystem")
+  ✓  Keep models/onesystem/encoder/*.py with the weights
+  ✓  Ship wheelhouse/ + requirements.txt
+  ✗  OneSystem.load() when weights are missing → tries GitHub
+  ✗  pip install / Hugging Face downloads at runtime on air-gap</code></pre>
+        <p class="note">Checklist: <a href="https://github.com/kiranbeethoju/onesystem/blob/main/scripts/offline_bundle.md">scripts/offline_bundle.md</a> · recipe JSON: <a href="data/recipes.json">docs/data/recipes.json</a></p>
+      </article>
+    </section>
+
     <section id="llm-fallback">
       <h2>When OneSystem abstains or fails — call your LLM</h2>
       <p class="section-lede">
@@ -419,7 +471,153 @@ model = OneSystem.load("models/onesystem-mydomain")</code></pre>
 
     <section id="cookbook">
       <h2>Cookbook — code and real outputs</h2>
-      <p class="section-lede">Outputs below were produced on CPU with an earlier build (schemas unchanged in v0.3.0). Clinical examples are not medical advice or a device.</p>
+      <p class="section-lede">
+        Domain smoke tests re-run locally with <code>python examples/run_recipes.py --model models/onesystem</code>
+        (general v0.3.0, CPU). Full dump: <a href="data/recipes.json">recipes.json</a>.
+        Clinical / medical schemas are <strong>not</strong> a medical device.
+      </p>
+
+      <article class="recipe" id="recipe-table">
+        <header>
+          <p class="domain">Verified locally</p>
+          <h3>Recipe results table</h3>
+        </header>
+        <pre class="out"><code>Domain              Case                         Strong heads (local v0.3.0)
+────────────────────────────────────────────────────────────────────────────
+Clinical NLP        Negated MI + missing PMH     mi_history=negated 0.53 · next_action=ask_history 0.47
+Clinical NLP        Family hx colon cancer       colon_cancer=family_only 0.40 · pmh=family_only 0.72
+Clinical triage     Chest-pain intake            disposition=ed_now 0.72 · red_flags.chest_pain 0.99
+E-commerce          Double charge + no ship      intent=refund_request 0.69 · handoff=yes 0.76
+Fintech             Fraud freeze card            intent=freeze_card 0.95 · products.debit_card 0.98
+EdTech              Gradebook before midterm     intent=grade_issue 0.89 · needs_human=yes 0.92
+Ops                 Deploy 500s                  urgent=yes 0.87  (severity/area abstain → human)</code></pre>
+        <p class="note">Abstain is the correct System‑1 behaviour when confidence is low — route that head to an LLM or human. Prefer short label descriptions and <strong>one polarity head per finding</strong>.</p>
+      </article>
+
+      <!-- CLINICAL NLP -->
+      <article class="recipe" id="clinical-nlp">
+        <header>
+          <p class="domain">Clinical NLP (schema demo)</p>
+          <h3>Negation + history status</h3>
+        </header>
+        <p class="warn">Not a medical device. For production clinical NLP, fine-tune with <code>domain_adapt</code> on labelled notes. On abstain → LLM / clinician.</p>
+        <p class="note"><strong>Pattern:</strong> do not ask one global “is this negated?” question. Ask <em>per finding</em> (<code>chest_pain</code>, <code>mi_history</code>, …) plus a <code>pmh_availability</code> head and a <code>next_action</code> head.</p>
+        <pre class="code"><code>def polarity(finding):
+    return {"labels": {
+        "affirmed": f"{finding}: present / positive",
+        "negated": f"{finding}: denied / no / without",
+        "uncertain": f"{finding}: possible / suspected",
+        "not_mentioned": f"{finding}: not in this note",
+    }}
+
+model.classify(
+    "Patient denies chest pain and denies history of myocardial infarction. "
+    "Past medical history is not available at this time.",
+    {
+        "chest_pain": polarity("chest pain"),
+        "mi_history": polarity("history of myocardial infarction"),
+        "pmh_availability": {"labels": {
+            "documented": "PMH listed with conditions",
+            "not_available": "PMH unavailable / unknown / not obtained",
+            "none_significant": "no significant past medical history",
+        }},
+        "next_action": {"labels": {
+            "extract_ok": "fields clear enough to store",
+            "ask_history": "ask for missing past medical history",
+            "confirm_negation": "confirm a denial is real",
+            "escalate_llm": "hand off to LLM or clinician",
+        }},
+    },
+    min_confidence=0.4,
+)</code></pre>
+        <pre class="out"><code>{
+  "chest_pain": {
+    "label": null,
+    "confidence": 0.3735,
+    "abstain": true,
+    "probabilities": {
+      "affirmed": 0.1053, "negated": 0.3289,
+      "uncertain": 0.1923, "not_mentioned": 0.3735
+    }
+  },
+  "mi_history": {
+    "label": "negated",
+    "confidence": 0.5257,
+    "probabilities": {
+      "affirmed": 0.0867, "negated": 0.5257,
+      "uncertain": 0.1786, "not_mentioned": 0.2089
+    }
+  },
+  "pmh_availability": {
+    "label": "none_significant",
+    "confidence": 0.6297,
+    "probabilities": {
+      "documented": 0.172, "not_available": 0.1983,
+      "none_significant": 0.6297
+    }
+  },
+  "next_action": {
+    "label": "ask_history",
+    "confidence": 0.4701,
+    "probabilities": {
+      "extract_ok": 0.1123, "ask_history": 0.4701,
+      "confirm_negation": 0.1, "escalate_llm": 0.3176
+    }
+  }
+}</code></pre>
+        <p class="note">
+          <strong>mi_history=negated</strong> and <strong>next_action=ask_history</strong> are usable signals.
+          <code>chest_pain</code> abstained — escalate that head (or shorten labels further / domain-adapt).
+          Zero-shot PMH availability can confuse “not available” vs “none significant”; trust <code>ask_history</code> / abstain over a forced label.
+        </p>
+      </article>
+
+      <article class="recipe" id="clinical-family">
+        <header>
+          <p class="domain">Clinical NLP (schema demo)</p>
+          <h3>Family history vs patient diagnosis</h3>
+        </header>
+        <pre class="code"><code>model.classify(
+    "Family history is significant for colon cancer in father at age 55. "
+    "Patient has no personal history of malignancy.",
+    {
+        "colon_cancer": {"labels": {
+            "patient_current": "patient has colon cancer now",
+            "patient_past": "patient had colon cancer before",
+            "family_only": "relative has colon cancer, not the patient",
+            "denied_patient": "patient denies personal malignancy history",
+            "not_mentioned": "colon cancer not discussed",
+        }},
+        "pmh_availability": {"labels": {
+            "documented": "PMH listed",
+            "not_available": "PMH missing",
+            "none_significant": "no significant PMH",
+            "family_only": "only family history is given",
+        }},
+    },
+    min_confidence=0.4,
+)</code></pre>
+        <pre class="out"><code>{
+  "colon_cancer": {
+    "label": "family_only",
+    "confidence": 0.4004,
+    "probabilities": {
+      "patient_current": 0.1609, "patient_past": 0.1751,
+      "family_only": 0.4004, "denied_patient": 0.1342,
+      "not_mentioned": 0.1294
+    }
+  },
+  "pmh_availability": {
+    "label": "family_only",
+    "confidence": 0.7186,
+    "probabilities": {
+      "documented": 0.1013, "not_available": 0.0536,
+      "none_significant": 0.1266, "family_only": 0.7186
+    }
+  }
+}</code></pre>
+        <p class="note">Family vs patient attribution works zero-shot with contrastive labels. Still escalate low-confidence heads.</p>
+      </article>
 
       <!-- HANDOFF -->
       <article class="recipe" id="handoff">
@@ -690,7 +888,7 @@ model = OneSystem.load("models/onesystem-mydomain")</code></pre>
           <p class="domain">Clinical (schema demo)</p>
           <h3>Chest-pain intake note</h3>
         </header>
-        <p class="warn">Not a medical device. Do not use as the sole basis for diagnosis or treatment.</p>
+        <p class="warn">Not a medical device. Do not use as the sole basis for diagnosis or treatment. For negation / history extraction see <a href="#clinical-nlp">Clinical NLP</a>.</p>
         <pre class="code"><code>model.classify(
     "52M with sudden crushing chest pain radiating to left arm "
     "for 40 minutes, diaphoresis, history of hypertension. "

@@ -24,3 +24,7 @@ models/onesystem-*/
 # Weights are published as release assets, not committed.
 models/onesystem/model.safetensors
 models/onesystem/*.part
+
+# Full offline pack (source + weights) lives on the GitHub Release, not in git.
+offline_bundle.zip
+wheelhouse/

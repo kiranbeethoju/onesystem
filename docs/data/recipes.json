@@ -1,0 +1,435 @@
+{
+  "model": "models/onesystem",
+  "name": "OneSystem",
+  "disclaimer": "Clinical / medical schemas are illustrative only and are not a medical device. For production clinical NLP, fine-tune with domain_adapt on labelled notes.",
+  "cases": [
+    {
+      "id": "medical_negated_dx",
+      "domain": "clinical_nlp",
+      "title": "Negated findings + incomplete history",
+      "text": "Patient denies chest pain and denies history of myocardial infarction. Past medical history is not available at this time. No known drug allergies stated.",
+      "focus": "per-finding negation + PMH availability",
+      "warn": null,
+      "min_confidence": 0.4,
+      "output": {
+        "chest_pain": {
+          "label": null,
+          "confidence": 0.3735,
+          "probabilities": {
+            "affirmed": 0.1053,
+            "negated": 0.3289,
+            "uncertain": 0.1923,
+            "not_mentioned": 0.3735
+          },
+          "abstain": true
+        },
+        "mi_history": {
+          "label": "negated",
+          "confidence": 0.5257,
+          "probabilities": {
+            "affirmed": 0.0867,
+            "negated": 0.5257,
+            "uncertain": 0.1786,
+            "not_mentioned": 0.2089
+          }
+        },
+        "pmh_availability": {
+          "label": "none_significant",
+          "confidence": 0.6297,
+          "probabilities": {
+            "documented": 0.172,
+            "not_available": 0.1983,
+            "none_significant": 0.6297
+          }
+        },
+        "history_quality": {
+          "label": "usable",
+          "confidence": 0.7321,
+          "probabilities": {
+            "usable": 0.7321,
+            "need_more": 0.2679
+          }
+        },
+        "next_action": {
+          "label": "ask_history",
+          "confidence": 0.4701,
+          "probabilities": {
+            "extract_ok": 0.1123,
+            "ask_history": 0.4701,
+            "confirm_negation": 0.1,
+            "escalate_llm": 0.3176
+          }
+        }
+      }
+    },
+    {
+      "id": "medical_affirmed_with_hx",
+      "domain": "clinical_nlp",
+      "title": "Affirmed complaint with usable history",
+      "text": "52M with sudden crushing chest pain radiating to left arm for 40 minutes, diaphoresis. History of hypertension and type 2 diabetes. BP 168/102, HR 110. No fever.",
+      "focus": "affirmed chest pain, negated fever, documented PMH, ED disposition",
+      "warn": null,
+      "min_confidence": 0.4,
+      "output": {
+        "chest_pain": {
+          "label": null,
+          "confidence": 0.3228,
+          "probabilities": {
+            "affirmed": 0.2008,
+            "negated": 0.1717,
+            "uncertain": 0.3048,
+            "not_mentioned": 0.3228
+          },
+          "abstain": true
+        },
+        "fever": {
+          "label": null,
+          "confidence": 0.3506,
+          "probabilities": {
+            "affirmed": 0.1759,
+            "negated": 0.1459,
+            "uncertain": 0.3277,
+            "not_mentioned": 0.3506
+          },
+          "abstain": true
+        },
+        "pmh_availability": {
+          "label": "not_available",
+          "confidence": 0.4064,
+          "probabilities": {
+            "documented": 0.2669,
+            "not_available": 0.4064,
+            "none_significant": 0.3268
+          }
+        },
+        "history_quality": {
+          "label": "usable",
+          "confidence": 0.5419,
+          "probabilities": {
+            "usable": 0.5419,
+            "need_more": 0.4581
+          }
+        },
+        "disposition": {
+          "label": "ed_now",
+          "confidence": 0.6806,
+          "probabilities": {
+            "ed_now": 0.6806,
+            "urgent_clinic": 0.2345,
+            "routine": 0.0539,
+            "self_care": 0.031
+          }
+        },
+        "red_flags": {
+          "labels": [
+            "chest_pain",
+            "shortness_of_breath",
+            "neuro_deficit",
+            "severe_bleeding",
+            "altered_mental_status"
+          ],
+          "probabilities": {
+            "chest_pain": 0.9941,
+            "shortness_of_breath": 0.8552,
+            "neuro_deficit": 0.6189,
+            "severe_bleeding": 0.952,
+            "altered_mental_status": 0.7408
+          },
+          "threshold": 0.45
+        }
+      }
+    },
+    {
+      "id": "medical_family_hx_only",
+      "domain": "clinical_nlp",
+      "title": "Family history only (not patient diagnosis)",
+      "text": "Family history is significant for colon cancer in father at age 55. Patient has no personal history of malignancy. Review of systems otherwise negative.",
+      "focus": "family vs patient attribution",
+      "warn": null,
+      "min_confidence": 0.4,
+      "output": {
+        "colon_cancer": {
+          "label": "family_only",
+          "confidence": 0.4004,
+          "probabilities": {
+            "patient_current": 0.1609,
+            "patient_past": 0.1751,
+            "family_only": 0.4004,
+            "denied_patient": 0.1342,
+            "not_mentioned": 0.1294
+          }
+        },
+        "pmh_availability": {
+          "label": "family_only",
+          "confidence": 0.7186,
+          "probabilities": {
+            "documented": 0.1013,
+            "not_available": 0.0536,
+            "none_significant": 0.1266,
+            "family_only": 0.7186
+          }
+        },
+        "next_action": {
+          "label": "extract_ok",
+          "confidence": 0.5998,
+          "probabilities": {
+            "extract_ok": 0.5998,
+            "ask_history": 0.3288,
+            "escalate_llm": 0.0714
+          }
+        }
+      }
+    },
+    {
+      "id": "ecommerce",
+      "domain": "ecommerce",
+      "title": "Refund + shipping complaint",
+      "text": "I was charged twice for order #4412 and the package still has not shipped. Refund the duplicate today.",
+      "focus": null,
+      "warn": null,
+      "min_confidence": 0.55,
+      "output": {
+        "intent": {
+          "label": "refund_request",
+          "confidence": 0.6893,
+          "probabilities": {
+            "refund_request": 0.6893,
+            "order_status": 0.1054,
+            "cancel_subscription": 0.0395,
+            "return_item": 0.1059,
+            "other": 0.0599
+          }
+        },
+        "channel": {
+          "label": "billing",
+          "confidence": 0.6044,
+          "probabilities": {
+            "billing": 0.6044,
+            "shipping": 0.2589,
+            "product_quality": 0.0381,
+            "account": 0.0986
+          }
+        },
+        "urgency": {
+          "label": "2",
+          "confidence": 0.7113,
+          "probabilities": {
+            "0": 0.0741,
+            "1": 0.0735,
+            "2": 0.7113,
+            "3": 0.1412
+          },
+          "score": 1.9195
+        },
+        "handoff": {
+          "label": "yes",
+          "confidence": 0.7616,
+          "probabilities": {
+            "yes": 0.7616,
+            "no": 0.2384
+          }
+        }
+      }
+    },
+    {
+      "id": "fintech",
+      "domain": "fintech",
+      "title": "Card freeze + fraud concern",
+      "text": "Someone tried to use my debit card in another city. Freeze the card and send a new one.",
+      "focus": null,
+      "warn": null,
+      "min_confidence": 0.55,
+      "output": {
+        "intent": {
+          "label": "freeze_card",
+          "confidence": 0.9531,
+          "probabilities": {
+            "freeze_card": 0.9531,
+            "dispute_charge": 0.0135,
+            "balance_inquiry": 0.0029,
+            "transfer": 0.0206,
+            "other": 0.0098
+          }
+        },
+        "risk": {
+          "label": null,
+          "confidence": 0.3547,
+          "probabilities": {
+            "0": 0.1176,
+            "1": 0.3547,
+            "2": 0.2088,
+            "3": 0.3188
+          },
+          "score": 1.7288,
+          "abstain": true
+        },
+        "products": {
+          "labels": [
+            "debit_card",
+            "credit_card",
+            "checking",
+            "wire",
+            "mobile_app"
+          ],
+          "probabilities": {
+            "debit_card": 0.9783,
+            "credit_card": 0.9571,
+            "checking": 0.5166,
+            "wire": 0.8243,
+            "mobile_app": 0.7823
+          },
+          "threshold": 0.4
+        }
+      }
+    },
+    {
+      "id": "edtech",
+      "domain": "edtech",
+      "title": "Gradebook issue before exam",
+      "text": "I submitted my calculus homework twice and the gradebook still shows zero. Midterm is tomorrow \u2014 can a human check this?",
+      "focus": null,
+      "warn": null,
+      "min_confidence": 0.55,
+      "output": {
+        "intent": {
+          "label": "grade_issue",
+          "confidence": 0.8945,
+          "probabilities": {
+            "grade_issue": 0.8945,
+            "content_question": 0.0176,
+            "tech_support": 0.0264,
+            "deadline_extension": 0.0404,
+            "other": 0.021
+          }
+        },
+        "subject": {
+          "label": null,
+          "confidence": 0.4038,
+          "probabilities": {
+            "math": 0.4038,
+            "science": 0.1555,
+            "english": 0.0633,
+            "history": 0.0879,
+            "computer_science": 0.1621,
+            "other": 0.1274
+          },
+          "abstain": true
+        },
+        "needs_human": {
+          "label": "yes",
+          "confidence": 0.921,
+          "probabilities": {
+            "yes": 0.921,
+            "no": 0.079
+          }
+        },
+        "urgency": {
+          "label": null,
+          "confidence": 0.3184,
+          "probabilities": {
+            "0": 0.2691,
+            "1": 0.1585,
+            "2": 0.254,
+            "3": 0.3184
+          },
+          "score": 1.6218,
+          "abstain": true
+        }
+      }
+    },
+    {
+      "id": "ops_urgency",
+      "domain": "ops",
+      "title": "Incident urgency",
+      "text": "The deploy failed twice and customers are seeing 500s. Can someone look now?",
+      "focus": null,
+      "warn": null,
+      "min_confidence": 0.55,
+      "output": {
+        "urgent": {
+          "label": "yes",
+          "confidence": 0.8671,
+          "probabilities": {
+            "yes": 0.8671,
+            "no": 0.1329
+          }
+        },
+        "severity": {
+          "label": null,
+          "confidence": 0.4396,
+          "probabilities": {
+            "0": 0.1275,
+            "1": 0.2365,
+            "2": 0.4396,
+            "3": 0.1965
+          },
+          "score": 1.705,
+          "abstain": true
+        },
+        "area": {
+          "label": null,
+          "confidence": 0.2931,
+          "probabilities": {
+            "infrastructure": 0.2789,
+            "application": 0.115,
+            "security": 0.1317,
+            "data": 0.2931,
+            "other": 0.1814
+          },
+          "abstain": true
+        }
+      }
+    },
+    {
+      "id": "clinical_triage",
+      "domain": "clinical",
+      "title": "Chest-pain intake (schema demo)",
+      "text": "52M with sudden crushing chest pain radiating to left arm for 40 minutes, diaphoresis, history of hypertension. BP 168/102, HR 110. No fever.",
+      "focus": null,
+      "warn": "Not a medical device.",
+      "min_confidence": 0.55,
+      "output": {
+        "disposition": {
+          "label": "ed_now",
+          "confidence": 0.7212,
+          "probabilities": {
+            "ed_now": 0.7212,
+            "urgent_clinic": 0.1994,
+            "routine": 0.048,
+            "self_care": 0.0315
+          }
+        },
+        "specialty": {
+          "label": null,
+          "confidence": 0.5047,
+          "probabilities": {
+            "cardiology": 0.5047,
+            "pulmonology": 0.0994,
+            "gastroenterology": 0.1029,
+            "neurology": 0.0726,
+            "primary_care": 0.0766,
+            "other": 0.1438
+          },
+          "abstain": true
+        },
+        "red_flags": {
+          "labels": [
+            "chest_pain",
+            "shortness_of_breath",
+            "neuro_deficit",
+            "severe_bleeding",
+            "altered_mental_status"
+          ],
+          "probabilities": {
+            "chest_pain": 0.993,
+            "shortness_of_breath": 0.8655,
+            "neuro_deficit": 0.6192,
+            "severe_bleeding": 0.9573,
+            "altered_mental_status": 0.7406
+          },
+          "threshold": 0.45
+        }
+      }
+    }
+  ]
+}
