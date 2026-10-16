@@ -25,7 +25,8 @@
       <a class="btn" href="#offline">Offline / air-gap</a>
       <a class="btn" href="#llm-fallback">LLM fallback</a>
       <a class="btn" href="#cookbook">Cookbook</a>
-      <a class="btn" href="#clinical-nlp">Clinical NLP</a>
+      <a class="btn primary" href="#clinical-nlp">Negation + history</a>
+      <a class="btn" href="#clinical">Clinical triage</a>
       <a class="btn" href="benchmarks.html">Benchmarks</a>
       <a class="btn" href="comparison.html">vs Laya / OpenJev</a>
     </div>
@@ -474,7 +475,10 @@ model = OneSystem.load("models/onesystem-mydomain")</code></pre>
       <p class="section-lede">
         Domain smoke tests re-run locally with <code>python examples/run_recipes.py --model models/onesystem</code>
         (general v0.3.0, CPU). Full dump: <a href="data/recipes.json">recipes.json</a>.
-        Clinical / medical schemas are <strong>not</strong> a medical device.
+        Looking for medical negation / PMH status?
+        Jump to <a href="#clinical-nlp"><strong>Negation + history status</strong></a>
+        (not the chest-pain triage recipe further down).
+        Clinical schemas are <strong>not</strong> a medical device.
       </p>
 
       <article class="recipe" id="recipe-table">
@@ -497,7 +501,7 @@ Ops                 Deploy 500s                  urgent=yes 0.87  (severity/area
       <!-- CLINICAL NLP -->
       <article class="recipe" id="clinical-nlp">
         <header>
-          <p class="domain">Clinical NLP (schema demo)</p>
+          <p class="domain">Clinical NLP · negation / history</p>
           <h3>Negation + history status</h3>
         </header>
         <p class="warn">Not a medical device. For production clinical NLP, fine-tune with <code>domain_adapt</code> on labelled notes. On abstain → LLM / clinician.</p>
@@ -890,10 +894,12 @@ model.classify(
       <!-- CLINICAL -->
       <article class="recipe" id="clinical">
         <header>
-          <p class="domain">Clinical (schema demo)</p>
+          <p class="domain">Clinical triage (schema demo)</p>
           <h3>Chest-pain intake note</h3>
         </header>
-        <p class="warn">Not a medical device. Do not use as the sole basis for diagnosis or treatment. For negation / history extraction see <a href="#clinical-nlp">Clinical NLP</a>.</p>
+        <p class="warn">Not a medical device. This recipe is <strong>disposition / specialty / red_flags</strong> only.
+          For <strong>negation + history status</strong> (denied findings, missing PMH, family vs patient),
+          use <a href="#clinical-nlp">Negation + history status</a> above.</p>
         <pre class="code"><code>model.classify(
     "52M with sudden crushing chest pain radiating to left arm "
     "for 40 minutes, diaphoresis, history of hypertension. "
