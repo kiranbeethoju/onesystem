@@ -501,7 +501,12 @@ Ops                 Deploy 500s                  urgent=yes 0.87  (severity/area
           <h3>Negation + history status</h3>
         </header>
         <p class="warn">Not a medical device. For production clinical NLP, fine-tune with <code>domain_adapt</code> on labelled notes. On abstain → LLM / clinician.</p>
-        <p class="note"><strong>Pattern:</strong> do not ask one global “is this negated?” question. Ask <em>per finding</em> (<code>chest_pain</code>, <code>mi_history</code>, …) plus a <code>pmh_availability</code> head and a <code>next_action</code> head.</p>
+        <p class="note"><strong>Medical negation + history (pattern that works):</strong> ask <em>one head per finding</em> (not one global “negated?”).</p>
+        <pre class="out"><code>Head                         Labels
+─────────────────────────────────────────────────────────────────
+chest_pain / mi_history / fever   affirmed · negated · uncertain · not_mentioned
+pmh_availability                  documented · not_available · none_significant · family_only
+next_action                       extract_ok · ask_history · confirm_negation · escalate_llm</code></pre>
         <pre class="code"><code>def polarity(finding):
     return {"labels": {
         "affirmed": f"{finding}: present / positive",

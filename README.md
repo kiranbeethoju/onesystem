@@ -210,12 +210,21 @@ Full pattern: [LLM fallback](https://kiranbeethoju.github.io/onesystem/#llm-fall
 
 ## 6. Medical / clinical decision schemas (demo — not a device)
 
-OneSystem does **not** parse clinical text like a dedicated NLP stack. You define **typed questions** (one head per concept). For negation and history:
+OneSystem does **not** parse clinical text like a dedicated NLP stack. You define **typed questions** (one head per concept).
 
-1. **Per-finding polarity** — `chest_pain`, `mi_history`, `fever` each with `affirmed / negated / uncertain / not_mentioned`
-2. **History availability** — `documented / not_available / none_significant / family_only`
-3. **Next action** — `extract_ok / ask_history / confirm_negation / escalate_llm`
-4. On `abstain` or `escalate_llm` → call your LLM / clinician (never invent a diagnosis)
+### Medical negation + history (pattern that works)
+
+Ask **one head per finding** (not one global “negated?”):
+
+| Head | Purpose / labels |
+|---|---|
+| `chest_pain` / `mi_history` / `fever` | `affirmed` · `negated` · `uncertain` · `not_mentioned` |
+| `pmh_availability` | `documented` · `not_available` · `none_significant` · `family_only` |
+| `next_action` | `extract_ok` · `ask_history` · `confirm_negation` · `escalate_llm` |
+
+On `abstain` or `escalate_llm` → call your LLM / clinician (never invent a diagnosis).
+
+**Live cookbook (same pattern + outputs):** [Clinical NLP — Negation + history](https://kiranbeethoju.github.io/onesystem/#clinical-nlp)
 
 **Not a medical device.** Do not use as the sole basis for diagnosis or treatment. For production clinical NLP, label notes and run `domain_adapt`.
 
