@@ -4,7 +4,7 @@
 
 Pass a short document and the labels that are legal for a decision. OneSystem returns a typed answer, a probability table, and calibrated confidence in **one forward pass**. It does **not** generate text. It sits **in front of** chat / reasoning models so simple requests never pay for an LLM call.
 
-**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.3.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0) · **Offline zip:** [offline_bundle.zip](https://github.com/kiranbeethoju/onesystem/releases/download/v0.3.0/offline_bundle.zip) · **Cookbook:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/) · **Benchmarks:** [BANKING77 · CLINC150 · HWU64 · GoEmotions](https://kiranbeethoju.github.io/onesystem/benchmarks.html) · **Comparison:** [vs Laya / OpenJev](https://kiranbeethoju.github.io/onesystem/comparison.html) · **AI brief:** [docs/APP_BRIEF.md](docs/APP_BRIEF.md) · **Offline guide:** [scripts/offline_bundle.md](scripts/offline_bundle.md)
+**Repo:** [github.com/kiranbeethoju/onesystem](https://github.com/kiranbeethoju/onesystem) · **Release:** [v0.3.0](https://github.com/kiranbeethoju/onesystem/releases/tag/v0.3.0) · **Offline zip:** [offline_bundle.zip](https://github.com/kiranbeethoju/onesystem/releases/download/v0.3.0/offline_bundle.zip) · **Cookbook:** [kiranbeethoju.github.io/onesystem](https://kiranbeethoju.github.io/onesystem/) · **Benchmarks:** [BANKING77 · CLINC150 · HWU64 · GoEmotions](https://kiranbeethoju.github.io/onesystem/benchmarks.html) · **Comparison:** [vs Laya / OpenJev](https://kiranbeethoju.github.io/onesystem/comparison.html) · **AI brief:** [docs/APP_BRIEF.md](docs/APP_BRIEF.md) · **Offline guide:** [scripts/offline_bundle.md](scripts/offline_bundle.md) · **MedLM (from-scratch ~120M):** [medlm/README.md](medlm/README.md) (corpus includes [`humigy-tiny-data`](https://huggingface.co/datasets/peoplemaketh/humigy-tiny-data))
 
 ---
 
@@ -393,6 +393,7 @@ Without install: `python -m onesystem.cli "…" --task handoff --labels yes,no` 
 | `benchmarks/` | BANKING77 / CLINC150 / HWU64 / GoEmotions |
 | `examples/run_recipes.py` | Offline cookbook smoke tests → `docs/data/recipes.json` |
 | `examples/colab_usecases.py` | Colab multi-use-case script |
+| `medlm/` | From-scratch ~120M healthcare LM pretrain (Mac MPS) |
 | `scripts/offline_bundle.md` | Air-gap pack / unpack checklist |
 | `requirements.txt` | Pins for `pip download` wheelhouse |
 | `scripts/render_diagrams.py` | Pipeline + architecture PNGs |

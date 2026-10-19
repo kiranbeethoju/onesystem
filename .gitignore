@@ -28,3 +28,9 @@ models/onesystem/*.part
 # Full offline pack (source + weights) lives on the GitHub Release, not in git.
 offline_bundle.zip
 wheelhouse/
+
+# MedLM from-scratch pretrain artifacts (large — download on Colab / local)
+data/medlm/
+models/medlm-*/
+models/medlm-*/**
+!medlm/

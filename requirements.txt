@@ -5,3 +5,4 @@ torch>=2.1
 transformers>=4.49,<5
 safetensors>=0.4
 huggingface_hub>=0.20
+# MedLM corpus: humigy-tiny-data is fetched via huggingface_hub (no datasets package required)
