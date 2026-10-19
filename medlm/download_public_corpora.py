@@ -177,65 +177,108 @@ def load_medqa(out: Path) -> dict:
 
 @register("medicationqa")
 def load_medicationqa(out: Path) -> dict:
-    url = "https://raw.githubusercontent.com/abachaa/Medication_QA_MedInfo2019/master/MedInfo2019-QA-Medications.csv"
-    # fallback raw paths vary; try HF if present
-    try:
-        from datasets import load_dataset
+    """MedInfo2019 MedicationQA — GitHub XLSX (no HF script)."""
+    import zipfile
+    import xml.etree.ElementTree as ET
 
-        ds = load_dataset("bigbio/medication_qa", "medication_qa_source", split="train")
-        rows = []
-        for row in ds:
-            q = row.get("question") or ""
-            a = row.get("answer") or row.get("response") or ""
-            rows.append({"text": f"Medication question: {q}\nAnswer: {a}", "source": "medicationqa"})
-        n = _write_jsonl(out / "medicationqa.jsonl", rows)
-        if n:
-            return {"docs": n, "via": "bigbio"}
-    except Exception:
-        pass
-    # GitHub raw JSON/CSV mirrors
-    for raw in (
-        "https://raw.githubusercontent.com/abachaa/Medication_QA_MedInfo2019/master/MedInfo2019-QA-Medications.json",
-        "https://huggingface.co/datasets/bigbio/medication_qa/resolve/main/medication_qa.json",
-    ):
-        try:
-            dest = out / "_tmp_medicationqa"
-            _http_get(raw, dest)
-            text = dest.read_text(encoding="utf-8", errors="ignore")
-            rows = []
-            if text.lstrip().startswith("["):
-                data = json.loads(text)
-                for row in data:
-                    q = row.get("Question") or row.get("question") or ""
-                    a = row.get("Answer") or row.get("answer") or ""
-                    rows.append({"text": f"Medication question: {q}\nAnswer: {a}", "source": "medicationqa"})
-            n = _write_jsonl(out / "medicationqa.jsonl", rows)
-            dest.unlink(missing_ok=True)
-            if n:
-                return {"docs": n, "via": raw}
-        except Exception:
-            continue
-    return {"docs": 0, "error": "medicationqa unavailable"}
+    url = "https://github.com/abachaa/Medication_QA_MedInfo2019/raw/master/MedInfo2019-QA-Medications.xlsx"
+    xlsx = out / "_medicationqa.xlsx"
+    _http_get(url, xlsx)
+
+    # Minimal XLSX reader (sharedStrings + first sheet) — avoids openpyxl dependency
+    with zipfile.ZipFile(xlsx) as zf:
+        shared = []
+        if "xl/sharedStrings.xml" in zf.namelist():
+            root = ET.fromstring(zf.read("xl/sharedStrings.xml"))
+            ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+            for si in root.findall("m:si", ns):
+                shared.append("".join(t.text or "" for t in si.iter("{http://schemas.openxmlformats.org/spreadsheetml/2006/main}t")))
+        sheet = ET.fromstring(zf.read("xl/worksheets/sheet1.xml"))
+        ns = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+        rows_xml = sheet.findall("m:sheetData/m:row", ns)
+        table = []
+        for row in rows_xml:
+            cells = []
+            for c in row.findall("m:c", ns):
+                ref = c.attrib.get("r", "A")
+                col = 0
+                for ch in ref:
+                    if ch.isalpha():
+                        col = col * 26 + (ord(ch.upper()) - 64)
+                    else:
+                        break
+                while len(cells) < col - 1:
+                    cells.append("")
+                v = c.find("m:v", ns)
+                val = v.text if v is not None else ""
+                if c.attrib.get("t") == "s" and val.isdigit():
+                    val = shared[int(val)] if int(val) < len(shared) else val
+                cells.append(val or "")
+            table.append(cells)
+    xlsx.unlink(missing_ok=True)
+    if not table:
+        return {"docs": 0, "error": "empty xlsx"}
+    header = [h.strip().lower() for h in table[0]]
+    def col(*names):
+        for n in names:
+            if n in header:
+                return header.index(n)
+        return None
+    iq, ia = col("question", "questions"), col("answer", "answers", "response")
+    rows = []
+    for cells in table[1:]:
+        q = cells[iq] if iq is not None and iq < len(cells) else ""
+        a = cells[ia] if ia is not None and ia < len(cells) else ""
+        if not q and len(cells) >= 2:
+            q, a = cells[0], cells[1]
+        text = f"Medication question: {q}\nAnswer: {a}".strip()
+        rows.append({"text": text, "source": "medicationqa"})
+    n = _write_jsonl(out / "medicationqa.jsonl", rows)
+    return {"docs": n, "via": "github-xlsx"}
 
 
 @register("liveqa")
 def load_liveqa(out: Path) -> dict:
-    try:
-        from datasets import load_dataset
+    """TREC 2017 LiveQA Medical — GitHub XML (no HF dataset)."""
+    import xml.etree.ElementTree as ET
 
-        ds = load_dataset("bigbio/liveqa", "liveqa_source", split="test")
-        rows = []
-        for row in ds:
-            q = row.get("question") or row.get("message") or ""
-            a = row.get("answer") or row.get("summary") or ""
-            if not q and isinstance(row.get("nid"), str):
-                continue
-            text = f"Consumer health question: {q}\nAnswer: {a}".strip()
-            rows.append({"text": text, "source": "liveqa"})
-        n = _write_jsonl(out / "liveqa.jsonl", rows)
-        return {"docs": n}
-    except Exception as exc:  # noqa: BLE001
-        return {"docs": 0, "error": str(exc)}
+    url = (
+        "https://raw.githubusercontent.com/abachaa/LiveQA_MedicalTask_TREC2017/"
+        "master/TestDataset/TREC-2017-LiveQA-Medical-Test-Questions-w-summaries.xml"
+    )
+    xml_path = out / "_liveqa.xml"
+    _http_get(url, xml_path)
+    root = ET.fromstring(xml_path.read_text(encoding="utf-8", errors="ignore"))
+    rows = []
+    # flexible tag walk
+    for qnode in root.iter():
+        tag = qnode.tag.lower().split("}")[-1]
+        if tag not in {"nugget", "question", "nlm-question"}:
+            continue
+        texts = []
+        answers = []
+        for child in qnode.iter():
+            ct = child.tag.lower().split("}")[-1]
+            if ct in {"message", "subject", "question"} and (child.text or "").strip():
+                texts.append(child.text.strip())
+            if ct in {"answer", "summary", "referenceanswer", "focus"} and (child.text or "").strip():
+                answers.append(child.text.strip())
+        q = " ".join(dict.fromkeys(texts))
+        a = " ".join(dict.fromkeys(answers))
+        if len(q) >= 20:
+            rows.append({"text": f"Consumer health question: {q}\nAnswer: {a}".strip(), "source": "liveqa"})
+    # fallback: every <NLM-QUESTION> block as text blob
+    if not rows:
+        blob = xml_path.read_text(encoding="utf-8", errors="ignore")
+        parts = re.split(r"</?NLM-QUESTION[^>]*>", blob, flags=re.I)
+        for part in parts:
+            clean = re.sub(r"<[^>]+>", " ", part)
+            clean = re.sub(r"\s+", " ", clean).strip()
+            if len(clean) > 40:
+                rows.append({"text": clean, "source": "liveqa"})
+    xml_path.unlink(missing_ok=True)
+    n = _write_jsonl(out / "liveqa.jsonl", rows)
+    return {"docs": n, "via": "github-xml"}
 
 
 @register("pmc_patients")
@@ -259,82 +302,111 @@ def load_pmc_patients(out: Path) -> dict:
     return {"docs": 0, "error": "pmc_patients not found on HF"}
 
 
+def _parse_pubtator(text: str) -> List[str]:
+    """PubTator blocks: title|a / abstract|a lines → documents."""
+    docs: List[str] = []
+    cur: List[str] = []
+    for line in text.splitlines():
+        if not line.strip():
+            if cur:
+                docs.append(" ".join(cur))
+                cur = []
+            continue
+        parts = line.split("|")
+        if len(parts) >= 3 and parts[1] in {"t", "a"}:
+            cur.append(parts[2].strip())
+    if cur:
+        docs.append(" ".join(cur))
+    return docs
+
+
 @register("bc5cdr")
 def load_bc5cdr(out: Path) -> dict:
-    from datasets import load_dataset
+    """BC5CDR from Hub ZIP PubTator files (no dataset script)."""
+    import zipfile
 
-    ds = load_dataset("bigbio/bc5cdr", "bc5cdr_source", split="train", trust_remote_code=True)
+    from huggingface_hub import hf_hub_download
+
+    zpath = hf_hub_download("bigbio/bc5cdr", "CDR_Data.zip", repo_type="dataset")
     rows = []
-    for row in ds:
-        passages = row.get("passages") or row.get("text") or ""
-        if isinstance(passages, list):
-            text = "\n".join(
-                p.get("text", "") if isinstance(p, dict) else str(p) for p in passages
-            )
-        else:
-            text = str(passages)
-        rows.append({"text": text, "source": "bc5cdr"})
+    with zipfile.ZipFile(zpath) as zf:
+        for name in zf.namelist():
+            if not name.endswith(".PubTator.txt"):
+                continue
+            docs = _parse_pubtator(zf.read(name).decode("utf-8", errors="ignore"))
+            for d in docs:
+                rows.append({"text": d, "source": "bc5cdr", "file": Path(name).name})
     n = _write_jsonl(out / "bc5cdr.jsonl", rows)
-    return {"docs": n}
+    return {"docs": n, "via": "CDR_Data.zip"}
 
 
 @register("ncbi_disease")
 def load_ncbi_disease(out: Path) -> dict:
-    from datasets import load_dataset
-
-    for name in ("bigbio/ncbi_disease", "ncbi/ncbi_disease"):
+    """NCBI Disease corpus from spyysalo/ncbi-disease (GitHub raw)."""
+    files = [
+        "original-data/train/NCBItrainset_corpus.txt",
+        "original-data/devel/NCBIdevelopset_corpus.txt",
+        "original-data/test/NCBItestset_corpus.txt",
+    ]
+    rows = []
+    for rel in files:
+        url = f"https://raw.githubusercontent.com/spyysalo/ncbi-disease/master/{rel}"
+        dest = out / f"_ncbi_{Path(rel).name}"
         try:
-            ds = load_dataset(name, "ncbi_disease_source", split="train", trust_remote_code=True)
-            rows = []
-            for row in ds:
-                passages = row.get("passages") or []
-                if passages:
-                    text = "\n".join(p.get("text", "") for p in passages if isinstance(p, dict))
-                else:
-                    text = str(row.get("text") or "")
-                rows.append({"text": text, "source": "ncbi_disease"})
-            n = _write_jsonl(out / "ncbi_disease.jsonl", rows)
-            return {"docs": n, "hf": name}
-        except Exception:
-            continue
-    return {"docs": 0, "error": "ncbi_disease failed"}
+            _http_get(url, dest)
+        except Exception as exc:  # noqa: BLE001
+            return {"docs": 0, "error": f"{rel}: {exc}"}
+        body = dest.read_text(encoding="utf-8", errors="ignore")
+        dest.unlink(missing_ok=True)
+        docs = _parse_pubtator(body)
+        if not docs:
+            docs = [p.strip() for p in re.split(r"\n\s*\n", body) if len(p.strip()) > 40]
+        for d in docs:
+            rows.append({"text": d, "source": "ncbi_disease"})
+    n = _write_jsonl(out / "ncbi_disease.jsonl", rows)
+    return {"docs": n, "via": "spyysalo/ncbi-disease"}
 
 
 @register("biosses")
 def load_biosses(out: Path) -> dict:
-    from datasets import load_dataset
+    """BIOSSES sentence pairs TSV on Hub (no dataset script)."""
+    from huggingface_hub import hf_hub_download
 
-    ds = load_dataset("bigbio/biosses", "biosses_source", split="train", trust_remote_code=True)
+    tsv = hf_hub_download("bigbio/biosses", "annotation_pairs_scores.tsv", repo_type="dataset")
     rows = []
-    for row in ds:
-        a = row.get("text_1") or row.get("sentence1") or ""
-        b = row.get("text_2") or row.get("sentence2") or ""
-        rows.append({"text": f"{a}\n{b}".strip(), "source": "biosses"})
+    with open(tsv, encoding="utf-8") as fh:
+        header = fh.readline()
+        for line in fh:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 3:
+                continue
+            # sentence_id, sentence_1, sentence_2, ...
+            a, b = parts[1], parts[2]
+            rows.append({"text": f"{a}\n{b}".strip(), "source": "biosses"})
     n = _write_jsonl(out / "biosses.jsonl", rows)
-    return {"docs": n}
+    return {"docs": n, "via": "annotation_pairs_scores.tsv"}
 
 
 @register("headqa")
 def load_headqa(out: Path) -> dict:
+    """HEAD-QA questions only (strip LLM chain-of-thought if present)."""
     from datasets import load_dataset
 
+    # Prefer question field; ignore synthetic long responses
     try:
-        ds = load_dataset("head_qa", "en", split="train")
-    except Exception:
-        ds = load_dataset("head_qa", split="train")
-    rows = []
-    for row in ds:
-        q = row.get("qtext") or row.get("question") or ""
-        answers = row.get("answers") or []
-        if isinstance(answers, list):
-            opt = " | ".join(
-                (a.get("atext") if isinstance(a, dict) else str(a)) for a in answers
-            )
-        else:
-            opt = str(answers)
-        rows.append({"text": f"HEAD-QA: {q}\nOptions: {opt}", "source": "headqa"})
-    n = _write_jsonl(out / "headqa.jsonl", rows)
-    return {"docs": n}
+        ds = load_dataset("HPAI-BSC/headqa-cot-llama31", split="train")
+        rows = []
+        for row in ds:
+            q = (row.get("question") or "").strip()
+            # Keep stem + options; drop model "response" (LLM-generated)
+            if "Options:" in q:
+                q = q.split("Let's think step by step.")[-1].strip() if "Let's think" in q else q
+            if len(q) > 40:
+                rows.append({"text": f"HEAD-QA: {q}", "source": "headqa"})
+        n = _write_jsonl(out / "headqa.jsonl", rows)
+        return {"docs": n, "hf": "HPAI-BSC/headqa-cot-llama31", "note": "questions/options only"}
+    except Exception as exc:  # noqa: BLE001
+        return {"docs": 0, "error": str(exc)}
 
 
 @register("cord19_meta")
